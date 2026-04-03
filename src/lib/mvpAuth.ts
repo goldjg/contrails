@@ -8,6 +8,8 @@ export interface MVPVerificationResult {
   isVerified: boolean
   profile?: MVPProfile
   error?: string
+  detectedMVPUrl?: string
+  detectedGitHubLinks?: string[]
 }
 
 interface GitHubUserResponse {
@@ -37,7 +39,7 @@ async function fetchGitHubProfile(username: string): Promise<string> {
   return data.bio || ''
 }
 
-async function fetchMVPProfile(profileUrl: string): Promise<MVPProfile | null> {
+async function fetchMVPProfile(profileUrl: string): Promise<{ profile: MVPProfile; githubLinks: string[] } | null> {
   try {
     const response = await fetch(profileUrl)
     if (!response.ok) {
@@ -57,10 +59,21 @@ async function fetchMVPProfile(profileUrl: string): Promise<MVPProfile | null> {
       activities.push(match[1].trim())
     }
     
+    const githubLinks: string[] = []
+    const githubLinkMatches = html.matchAll(/https?:\/\/github\.com\/([a-zA-Z0-9_-]+)/gi)
+    for (const match of githubLinkMatches) {
+      if (!githubLinks.includes(match[0])) {
+        githubLinks.push(match[0])
+      }
+    }
+    
     return {
-      displayName,
-      awardCategory,
-      activities
+      profile: {
+        displayName,
+        awardCategory,
+        activities
+      },
+      githubLinks
     }
   } catch (error) {
     return null
@@ -84,23 +97,28 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
       }
     }
     
-    const mvpProfile = await fetchMVPProfile(mvpProfileUrl)
-    if (!mvpProfile) {
+    const mvpData = await fetchMVPProfile(mvpProfileUrl)
+    if (!mvpData) {
       return {
         isVerified: false,
-        error: 'Unable to verify MVP profile'
+        error: 'Unable to verify MVP profile',
+        detectedMVPUrl: mvpProfileUrl
       }
     }
+    
+    const { profile: mvpProfile, githubLinks } = mvpData
     
     if (mvpProfile.awardCategory !== 'Security') {
       return {
         isVerified: false,
-        error: 'MVP Award Category must be Security'
+        error: 'MVP Award Category must be Security',
+        detectedMVPUrl: mvpProfileUrl,
+        detectedGitHubLinks: githubLinks
       }
     }
     
     const normalizedUsername = githubUsername.toLowerCase()
-    const hasMatchingUsername = mvpProfile.activities.some(activity => 
+    const hasMatchingUsername = mvpProfile.activities.some((activity: string) => 
       activity.toLowerCase().includes(normalizedUsername) || 
       activity.toLowerCase().includes('github.com/' + normalizedUsername)
     )
@@ -108,13 +126,17 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
     if (!hasMatchingUsername) {
       return {
         isVerified: false,
-        error: 'GitHub username not found in MVP profile activities'
+        error: 'GitHub username not found in MVP profile activities',
+        detectedMVPUrl: mvpProfileUrl,
+        detectedGitHubLinks: githubLinks
       }
     }
     
     return {
       isVerified: true,
-      profile: mvpProfile
+      profile: mvpProfile,
+      detectedMVPUrl: mvpProfileUrl,
+      detectedGitHubLinks: githubLinks
     }
   } catch (error) {
     return {

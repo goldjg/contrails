@@ -16,6 +16,8 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
     mvpProfileUrl?: string
     displayName?: string
     error?: string
+    detectedMVPUrl?: string
+    detectedGitHubLinks?: string[]
   } | null>(null)
 
   useEffect(() => {
@@ -112,6 +114,56 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                 {verificationResult?.error}
               </p>
             </div>
+
+            {(verificationResult?.detectedMVPUrl || verificationResult?.detectedGitHubLinks) && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Detected Profile Information:</h3>
+                
+                {verificationResult?.detectedMVPUrl && (
+                  <div className="bg-muted/50 border rounded-lg p-4">
+                    <div className="flex items-start gap-3 text-sm">
+                      <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
+                      <div className="flex-1">
+                        <p className="font-medium mb-1">Your MVP Profile</p>
+                        <a 
+                          href={verificationResult.detectedMVPUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline break-all"
+                        >
+                          {verificationResult.detectedMVPUrl}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {verificationResult?.detectedGitHubLinks && verificationResult.detectedGitHubLinks.length > 0 && (
+                  <div className="bg-muted/50 border rounded-lg p-4">
+                    <div className="flex items-start gap-3 text-sm">
+                      <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
+                      <div className="flex-1">
+                        <p className="font-medium mb-2">GitHub Links Found on Your MVP Profile</p>
+                        <ul className="space-y-1">
+                          {verificationResult.detectedGitHubLinks.map((link, index) => (
+                            <li key={index}>
+                              <a 
+                                href={link} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-primary hover:underline break-all"
+                              >
+                                {link}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-4">
               <h3 className="font-semibold text-sm">To gain access, you need:</h3>
