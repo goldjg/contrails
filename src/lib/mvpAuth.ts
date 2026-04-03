@@ -130,7 +130,7 @@ If you cannot access the URL or encounter errors, return:
   "awardCategory": "",
   "githubLinks": []
 }`
-
+    
     console.log(`[MVP Auth] Sending request to LLM proxy...`)
     const response = await window.spark.llm(promptText, "gpt-4o", true)
     console.log(`[MVP Auth] LLM proxy response received:`, response)
