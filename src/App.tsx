@@ -4,15 +4,16 @@ import { ConferencesView } from '@/components/ConferencesView'
 import { AnalyticsView } from '@/components/AnalyticsView'
 import { MVPsView } from '@/components/MVPsView'
 import { MVPProfile } from '@/components/MVPProfile'
+import { MapView } from '@/components/MapView'
 import { Conference, Attendance } from '@/lib/types'
-import { Globe, ChartBar, Users } from '@phosphor-icons/react'
+import { Globe, ChartBar, Users, MapTrifold } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { seedConferences2026 } from '@/lib/seedData'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-type ViewMode = 'conferences' | 'analytics' | 'mvps'
+type ViewMode = 'conferences' | 'analytics' | 'mvps' | 'map'
 
 function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
@@ -126,6 +127,17 @@ function App() {
             </Button>
             <Button
               variant="ghost"
+              onClick={() => setCurrentView('map')}
+              className={cn(
+                "text-white hover:bg-white/10",
+                currentView === 'map' && "bg-white/20"
+              )}
+            >
+              <MapTrifold size={20} weight="bold" className="mr-2" />
+              Map
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setCurrentView('analytics')}
               className={cn(
                 "text-white hover:bg-white/10",
@@ -159,6 +171,13 @@ function App() {
             onAddConference={handleAddConference}
             onToggleAttendance={handleToggleAttendance}
             onMVPClick={handleMVPClick}
+          />
+        )}
+
+        {currentView === 'map' && (
+          <MapView
+            conferences={conferences || []}
+            attendances={attendances || []}
           />
         )}
 

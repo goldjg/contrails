@@ -8,6 +8,10 @@ export interface Conference {
   description: string
   topics: string[]
   website?: string
+  coordinates?: {
+    lat: number
+    lng: number
+  }
 }
 
 export interface Attendance {
