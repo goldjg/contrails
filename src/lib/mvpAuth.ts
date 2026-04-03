@@ -92,13 +92,23 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
       }
     }
     
+    if (mvpProfile.awardCategory !== 'Security') {
+      return {
+        isVerified: false,
+        error: 'MVP Award Category must be Security'
+      }
+    }
+    
     const normalizedUsername = githubUsername.toLowerCase()
-    const hasMatchingUsername = mvpProfileUrl.toLowerCase().includes(normalizedUsername)
+    const hasMatchingUsername = mvpProfile.activities.some(activity => 
+      activity.toLowerCase().includes(normalizedUsername) || 
+      activity.toLowerCase().includes('github.com/' + normalizedUsername)
+    )
     
     if (!hasMatchingUsername) {
       return {
         isVerified: false,
-        error: 'MVP profile does not match GitHub username'
+        error: 'GitHub username not found in MVP profile activities'
       }
     }
     
