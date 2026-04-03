@@ -6,7 +6,7 @@ import { MVPsView } from '@/components/MVPsView'
 import { MVPProfile } from '@/components/MVPProfile'
 import { MapView } from '@/components/MapView'
 import { Conference, Attendance } from '@/lib/types'
-import { Globe, ChartBar, Users, MapTrifold } from '@phosphor-icons/react'
+import { Globe, ChartBar, Users, MapTrifold, CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { seedConferences2026 } from '@/lib/seedData'
 import { toast } from 'sonner'
@@ -24,6 +24,8 @@ function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('conferences')
   const [showLeftFade, setShowLeftFade] = useState(false)
   const [showRightFade, setShowRightFade] = useState(false)
+  const [showLeftArrow, setShowLeftArrow] = useState(false)
+  const [showRightArrow, setShowRightArrow] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -46,8 +48,14 @@ function App() {
     const checkScroll = () => {
       if (navRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = navRef.current
-        setShowLeftFade(scrollLeft > 0)
-        setShowRightFade(scrollLeft < scrollWidth - clientWidth - 1)
+        const hasOverflow = scrollWidth > clientWidth
+        const canScrollLeft = scrollLeft > 0
+        const canScrollRight = scrollLeft < scrollWidth - clientWidth - 1
+        
+        setShowLeftFade(canScrollLeft)
+        setShowRightFade(canScrollRight)
+        setShowLeftArrow(hasOverflow && canScrollLeft)
+        setShowRightArrow(hasOverflow && canScrollRight)
       }
     }
 
@@ -89,6 +97,16 @@ function App() {
 
   const handleMVPClick = (userId: string, userName: string, userAvatar: string) => {
     setSelectedMVP({ userId, userName, userAvatar })
+  }
+
+  const scrollNav = (direction: 'left' | 'right') => {
+    if (navRef.current) {
+      const scrollAmount = 200
+      navRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
   }
 
   if (!currentUser) {
@@ -136,6 +154,26 @@ function App() {
           </div>
 
           <div className="relative">
+            <button
+              onClick={() => scrollNav('left')}
+              className={cn(
+                "absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-primary/90 hover:bg-primary text-white rounded-full p-1 shadow-lg transition-all duration-300",
+                showLeftArrow ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+              )}
+              aria-label="Scroll left"
+            >
+              <CaretLeft size={20} weight="bold" />
+            </button>
+            <button
+              onClick={() => scrollNav('right')}
+              className={cn(
+                "absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-accent/90 hover:bg-accent text-white rounded-full p-1 shadow-lg transition-all duration-300",
+                showRightArrow ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+              )}
+              aria-label="Scroll right"
+            >
+              <CaretRight size={20} weight="bold" />
+            </button>
             <div
               className={cn(
                 "absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-primary/80 to-transparent pointer-events-none transition-opacity duration-300 z-10",
