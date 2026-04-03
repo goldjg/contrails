@@ -70,7 +70,7 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                 <div className="mt-1">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
                 </div>
-                <p>Looking for MVP profile URL in bio</p>
+                <p>Looking for MVP profile URL on GitHub profile</p>
               </div>
               <div className="flex items-start gap-2">
                 <div className="mt-1">
@@ -182,9 +182,9 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                 <div className="flex items-start gap-3 text-sm">
                   <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
                   <div>
-                    <p className="font-medium mb-1">Add your MVP profile URL to your GitHub bio</p>
+                    <p className="font-medium mb-1">Add your MVP profile URL to your GitHub profile</p>
                     <p className="text-muted-foreground mb-2">
-                      Go to your GitHub profile and add your Microsoft MVP profile URL (e.g., https://mvp.microsoft.com/en-US/mvp/profile/YOUR-ID) to your bio
+                      Go to your GitHub profile and add your Microsoft MVP profile URL anywhere on your profile page (bio, README, pinned items, etc.). Example format: https://mvp.microsoft.com/en-US/mvp/profile/YOUR-ID
                     </p>
                     <a 
                       href={`https://github.com/${username}`} 

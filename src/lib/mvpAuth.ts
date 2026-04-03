@@ -20,23 +20,17 @@ interface GitHubUserResponse {
 }
 
 async function fetchGitHubProfile(username: string): Promise<string> {
-  const url = `https://api.github.com/users/${username}`
+  const url = `https://github.com/${username}`
   const response = await fetch(url, {
     headers: {
-      'Accept': 'application/vnd.github+json',
       'User-Agent': 'contrails-app'
     }
   })
   if (!response.ok) {
-    throw new Error(`GitHub API request failed with status ${response.status}`)
+    throw new Error(`GitHub profile request failed with status ${response.status}`)
   }
-  let data: GitHubUserResponse
-  try {
-    data = await response.json()
-  } catch {
-    throw new Error('Failed to parse GitHub API response as JSON')
-  }
-  return data.bio || ''
+  const html = await response.text()
+  return html
 }
 
 async function fetchMVPProfile(profileUrl: string): Promise<{ profile: MVPProfile; githubLinks: string[] } | null> {
@@ -87,13 +81,13 @@ function extractMVPProfileUrl(text: string): string | null {
 
 export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
   try {
-    const githubBio = await fetchGitHubProfile(githubUsername)
+    const githubProfileHtml = await fetchGitHubProfile(githubUsername)
     
-    const mvpProfileUrl = extractMVPProfileUrl(githubBio)
+    const mvpProfileUrl = extractMVPProfileUrl(githubProfileHtml)
     if (!mvpProfileUrl) {
       return {
         isVerified: false,
-        error: 'No Microsoft MVP profile link found in GitHub bio'
+        error: 'No Microsoft MVP profile link found in GitHub profile'
       }
     }
     
@@ -118,15 +112,14 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
     }
     
     const normalizedUsername = githubUsername.toLowerCase()
-    const hasMatchingUsername = mvpProfile.activities.some((activity: string) => 
-      activity.toLowerCase().includes(normalizedUsername) || 
-      activity.toLowerCase().includes('github.com/' + normalizedUsername)
+    const hasMatchingGitHubLink = githubLinks.some((link: string) => 
+      link.toLowerCase().includes('github.com/' + normalizedUsername)
     )
     
-    if (!hasMatchingUsername) {
+    if (!hasMatchingGitHubLink) {
       return {
         isVerified: false,
-        error: 'GitHub username not found in MVP profile activities',
+        error: 'GitHub username not found in MVP profile',
         detectedMVPUrl: mvpProfileUrl,
         detectedGitHubLinks: githubLinks
       }
