@@ -16,8 +16,15 @@ This is a focused tool with conference browsing, attendance tracking, and user p
 - **Functionality**: Display upcoming cyber security conferences with key details (name, location, dates, description)
 - **Purpose**: Provides MVPs with a comprehensive view of global security events
 - **Trigger**: Default view on app load
-- **Progression**: App loads → Conference grid displays → User scans events → Can filter/search
-- **Success criteria**: All conferences visible, sortable by date, filterable by location/topic
+- **Progression**: App loads → Conference grid displays → User scans events → Can filter/search/sort
+- **Success criteria**: All conferences visible, sortable by date or name, filterable by location/topic, searchable by text
+
+### Conference Filtering & Sorting
+- **Functionality**: Filter conferences by location (country) or topic, and sort by date (earliest/latest) or name (A-Z)
+- **Purpose**: Enables users to quickly find relevant conferences based on their interests and schedule
+- **Trigger**: User selects filter/sort option from dropdowns in header
+- **Progression**: User views conferences → Selects filter/sort criteria → Conference list updates instantly → User can combine multiple filters
+- **Success criteria**: Filters work independently and together, sorting is immediate, clear visual feedback on active filters
 
 ### Attendance Tracking
 - **Functionality**: MVPs can mark conferences they plan to attend and see attendee counts

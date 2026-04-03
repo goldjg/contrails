@@ -5,16 +5,30 @@ import { AddConferenceDialog } from '@/components/AddConferenceDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Conference, Attendance } from '@/lib/types'
-import { PlusCircle, MagnifyingGlass, Globe } from '@phosphor-icons/react'
+import { PlusCircle, MagnifyingGlass, Globe, SortAscending, MapPin, Tag } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { isPast, parseISO } from 'date-fns'
 import { seedConferences2026 } from '@/lib/seedData'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+type SortOption = 'date-asc' | 'date-desc' | 'name-asc' | 'name-asc'
+type FilterLocation = 'all' | string
+type FilterTopic = 'all' | string
 
 function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
   const [attendances, setAttendances] = useKV<Attendance[]>('attendances', [])
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('date-asc')
+  const [filterLocation, setFilterLocation] = useState<FilterLocation>('all')
+  const [filterTopic, setFilterTopic] = useState<FilterTopic>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
   const [hasSeeded, setHasSeeded] = useState(false)
@@ -35,26 +49,57 @@ function App() {
     }
   }, [currentUser, conferences, hasSeeded, setConferences])
 
+  const uniqueLocations = useMemo(() => {
+    if (!conferences) return []
+    const locations = new Set(conferences.map(conf => conf.country))
+    return Array.from(locations).sort()
+  }, [conferences])
+
+  const uniqueTopics = useMemo(() => {
+    if (!conferences) return []
+    const topics = new Set(conferences.flatMap(conf => conf.topics))
+    return Array.from(topics).sort()
+  }, [conferences])
+
   const filteredConferences = useMemo(() => {
     if (!conferences) return []
-    if (!searchQuery) return conferences
+    
+    let filtered = conferences.filter(conf => !isPast(parseISO(conf.endDate)))
 
-    const query = searchQuery.toLowerCase()
-    return conferences.filter(
-      (conf) =>
-        conf.name.toLowerCase().includes(query) ||
-        conf.location.toLowerCase().includes(query) ||
-        conf.country.toLowerCase().includes(query) ||
-        conf.topics.some((topic) => topic.toLowerCase().includes(query))
-    )
-  }, [conferences, searchQuery])
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (conf) =>
+          conf.name.toLowerCase().includes(query) ||
+          conf.location.toLowerCase().includes(query) ||
+          conf.country.toLowerCase().includes(query) ||
+          conf.topics.some((topic) => topic.toLowerCase().includes(query))
+      )
+    }
 
-  const upcomingConferences = useMemo(() => {
-    if (!filteredConferences) return []
-    return filteredConferences
-      .filter((conf) => !isPast(parseISO(conf.endDate)))
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-  }, [filteredConferences])
+    if (filterLocation !== 'all') {
+      filtered = filtered.filter(conf => conf.country === filterLocation)
+    }
+
+    if (filterTopic !== 'all') {
+      filtered = filtered.filter(conf => conf.topics.includes(filterTopic))
+    }
+
+    const sorted = [...filtered]
+    switch (sortBy) {
+      case 'date-asc':
+        sorted.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+        break
+      case 'date-desc':
+        sorted.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+        break
+      case 'name-asc':
+        sorted.sort((a, b) => a.name.localeCompare(b.name))
+        break
+    }
+
+    return sorted
+  }, [conferences, searchQuery, filterLocation, filterTopic, sortBy])
 
   const handleAddConference = (conference: Conference) => {
     setConferences((current) => [...(current || []), conference])
@@ -134,22 +179,74 @@ function App() {
             )}
           </div>
 
-          <div className="relative">
-            <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="search"
-              type="text"
-              placeholder="Search conferences, locations, topics..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white/95 border-white/20"
-            />
+          <div className="space-y-4">
+            <div className="relative">
+              <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="search"
+                type="text"
+                placeholder="Search conferences, locations, topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-white/95 border-white/20"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-2 min-w-[180px]">
+                <SortAscending className="text-white" size={20} weight="bold" />
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                  <SelectTrigger className="bg-white/95 border-white/20">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-asc">Date (Earliest)</SelectItem>
+                    <SelectItem value="date-desc">Date (Latest)</SelectItem>
+                    <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 min-w-[180px]">
+                <MapPin className="text-white" size={20} weight="bold" />
+                <Select value={filterLocation} onValueChange={(value) => setFilterLocation(value as FilterLocation)}>
+                  <SelectTrigger className="bg-white/95 border-white/20">
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {uniqueLocations.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 min-w-[180px]">
+                <Tag className="text-white" size={20} weight="bold" />
+                <Select value={filterTopic} onValueChange={(value) => setFilterTopic(value as FilterTopic)}>
+                  <SelectTrigger className="bg-white/95 border-white/20">
+                    <SelectValue placeholder="All Topics" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Topics</SelectItem>
+                    {uniqueTopics.map((topic) => (
+                      <SelectItem key={topic} value={topic}>
+                        {topic}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-6 py-8">
-        {upcomingConferences.length === 0 && !searchQuery && (
+        {filteredConferences.length === 0 && !searchQuery && filterLocation === 'all' && filterTopic === 'all' && (
           <div className="text-center py-20">
             <Globe className="mx-auto mb-4 text-muted-foreground" size={64} />
             <h2 className="text-2xl font-semibold mb-2">No Conferences Yet</h2>
@@ -167,14 +264,14 @@ function App() {
           </div>
         )}
 
-        {upcomingConferences.length === 0 && searchQuery && (
+        {filteredConferences.length === 0 && (searchQuery || filterLocation !== 'all' || filterTopic !== 'all') && (
           <div className="text-center py-20">
-            <p className="text-muted-foreground">No conferences match your search.</p>
+            <p className="text-muted-foreground">No conferences match your filters.</p>
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingConferences.map((conference) => (
+          {filteredConferences.map((conference) => (
             <ConferenceCard
               key={conference.id}
               conference={conference}
