@@ -2,14 +2,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { ConferenceCard } from '@/components/ConferenceCard'
 import { AddConferenceDialog } from '@/components/AddConferenceDialog'
+import { DateRangePicker } from '@/components/DateRangePicker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Conference, Attendance } from '@/lib/types'
 import { PlusCircle, MagnifyingGlass, Globe, SortAscending, MapPin, Tag } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
-import { isPast, parseISO } from 'date-fns'
+import { isPast, parseISO, isWithinInterval } from 'date-fns'
 import { seedConferences2026 } from '@/lib/seedData'
 import { toast } from 'sonner'
+import { DateRange } from 'react-day-picker'
 import {
   Select,
   SelectContent,
@@ -29,6 +31,7 @@ function App() {
   const [sortBy, setSortBy] = useState<SortOption>('date-asc')
   const [filterLocation, setFilterLocation] = useState<FilterLocation>('all')
   const [filterTopic, setFilterTopic] = useState<FilterTopic>('all')
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
   const [hasSeeded, setHasSeeded] = useState(false)
@@ -85,6 +88,25 @@ function App() {
       filtered = filtered.filter(conf => conf.topics.includes(filterTopic))
     }
 
+    if (dateRange?.from) {
+      filtered = filtered.filter(conf => {
+        const confStart = parseISO(conf.startDate)
+        const confEnd = parseISO(conf.endDate)
+        
+        if (!dateRange.from) return true
+        
+        if (dateRange.to) {
+          return (
+            isWithinInterval(confStart, { start: dateRange.from, end: dateRange.to }) ||
+            isWithinInterval(confEnd, { start: dateRange.from, end: dateRange.to }) ||
+            (confStart <= dateRange.from && confEnd >= dateRange.to)
+          )
+        } else {
+          return isWithinInterval(dateRange.from, { start: confStart, end: confEnd })
+        }
+      })
+    }
+
     const sorted = [...filtered]
     switch (sortBy) {
       case 'date-asc':
@@ -99,7 +121,7 @@ function App() {
     }
 
     return sorted
-  }, [conferences, searchQuery, filterLocation, filterTopic, sortBy])
+  }, [conferences, searchQuery, filterLocation, filterTopic, dateRange, sortBy])
 
   const handleAddConference = (conference: Conference) => {
     setConferences((current) => [...(current || []), conference])
@@ -193,6 +215,11 @@ function App() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+              <DateRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+              />
+              
               <div className="flex items-center gap-2 min-w-[180px]">
                 <SortAscending className="text-white" size={20} weight="bold" />
                 <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
@@ -246,7 +273,7 @@ function App() {
       </header>
 
       <main className="container mx-auto px-6 py-8">
-        {filteredConferences.length === 0 && !searchQuery && filterLocation === 'all' && filterTopic === 'all' && (
+        {filteredConferences.length === 0 && !searchQuery && filterLocation === 'all' && filterTopic === 'all' && !dateRange?.from && (
           <div className="text-center py-20">
             <Globe className="mx-auto mb-4 text-muted-foreground" size={64} />
             <h2 className="text-2xl font-semibold mb-2">No Conferences Yet</h2>
@@ -264,7 +291,7 @@ function App() {
           </div>
         )}
 
-        {filteredConferences.length === 0 && (searchQuery || filterLocation !== 'all' || filterTopic !== 'all') && (
+        {filteredConferences.length === 0 && (searchQuery || filterLocation !== 'all' || filterTopic !== 'all' || dateRange?.from) && (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No conferences match your filters.</p>
           </div>
