@@ -13,11 +13,11 @@ This is a focused tool with conference browsing, attendance tracking, and user p
 ## Essential Features
 
 ### MVP Authentication & Access Control
-- **Functionality**: Verify that users are Microsoft Security MVPs by checking bidirectional profile links between GitHub and MVP profiles
+- **Functionality**: Verify that users are Microsoft Security MVPs by checking bidirectional profile links between GitHub and MVP profiles, including verification that the Award Category is "Security"
 - **Purpose**: Ensures ConTrails remains exclusive to verified Microsoft Security MVPs, maintaining community integrity
 - **Trigger**: Automatically on app load before any conference data is displayed
-- **Progression**: User loads app → GitHub profile fetched → MVP profile URL extracted from bio → MVP profile fetched → GitHub URL verified in MVP profile → Access granted or denied with instructions
-- **Success criteria**: Only verified MVPs can access the app; clear instructions provided for non-verified users on how to set up their profiles correctly
+- **Progression**: User loads app → GitHub profile fetched → MVP profile URL extracted from GitHub profile (bio, website, social links) → LLM-based proxy fetches MVP profile data → Verifies Award Category is "Security" → Verifies GitHub URL exists in MVP profile → Access granted or denied with detailed status of each check
+- **Success criteria**: Only verified Security MVPs can access the app; clear visual indicators show which verification checks passed/failed; detected profile URLs are displayed to help users troubleshoot; LLM proxy successfully bypasses CORS restrictions to fetch MVP profile data
 
 ### Conference Listing
 - **Functionality**: Display upcoming cyber security conferences with key details (name, location, dates, description)

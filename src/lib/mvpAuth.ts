@@ -29,6 +29,7 @@ interface GitHubUser {
   location: string | null
   name: string | null
   login: string
+  html_url: string
   social_accounts?: Array<{ provider: string; url: string }>
 }
 
@@ -90,6 +91,97 @@ function extractMVPProfileUrl(userData: GitHubUser): string | null {
   return null
 }
 
+async function fetchMVPProfileViaProxy(mvpProfileUrl: string, githubUsername: string): Promise<{
+  isValid: boolean
+  isSecurityMVP: boolean
+  hasGitHubLink: boolean
+  displayName?: string
+  awardCategory?: string
+  detectedGitHubLinks?: string[]
+}> {
+  console.log(`[MVP Auth] Fetching MVP profile via LLM proxy: ${mvpProfileUrl}`)
+  
+  try {
+    const promptText = `You are a web scraping assistant. Your task is to fetch the content from this Microsoft MVP profile page: ${mvpProfileUrl}
+
+Extract the following information and return it in JSON format:
+
+1. The MVP's display name (usually shown as the person's full name prominently at the top)
+2. The "Award Category" field value (look for text like "Security", "Azure", "Developer Technologies", "Microsoft 365", etc.)
+3. All URLs containing "github.com" anywhere on the page (check activities section, social links, bio, etc.)
+
+Important notes:
+- The Award Category is typically shown as a label or heading on the profile
+- GitHub links may appear in various formats: github.com/username, full profile URLs, or in activity descriptions
+- We're looking for the GitHub username "${githubUsername}" specifically - check if any GitHub URL contains this username
+
+Return ONLY a valid JSON object with this exact structure (no additional text):
+{
+  "displayName": "Full name from the profile",
+  "awardCategory": "The award category text (e.g., Security)",
+  "githubLinks": ["list", "of", "github.com", "urls", "found"],
+  "error": ""
+}
+
+If you cannot access the URL or encounter errors, return:
+{
+  "error": "Description of the error",
+  "displayName": "",
+  "awardCategory": "",
+  "githubLinks": []
+}`
+
+    console.log(`[MVP Auth] Sending request to LLM proxy...`)
+    const response = await window.spark.llm(promptText, "gpt-4o", true)
+    console.log(`[MVP Auth] LLM proxy response received:`, response)
+    
+    const parsedResponse = JSON.parse(response)
+    
+    if (parsedResponse.error) {
+      console.log(`[MVP Auth] LLM proxy returned error:`, parsedResponse.error)
+      return {
+        isValid: false,
+        isSecurityMVP: false,
+        hasGitHubLink: false
+      }
+    }
+    
+    const displayName = parsedResponse.displayName || ''
+    const awardCategory = parsedResponse.awardCategory || ''
+    const githubLinks = parsedResponse.githubLinks || []
+    
+    const isSecurityMVP = awardCategory.toLowerCase().includes('security')
+    const expectedGitHubUrl = `https://github.com/${githubUsername}`
+    const hasGitHubLink = githubLinks.some((link: string) => 
+      link.toLowerCase().includes(githubUsername.toLowerCase())
+    )
+    
+    console.log(`[MVP Auth] Parsed MVP profile:`, {
+      displayName,
+      awardCategory,
+      isSecurityMVP,
+      hasGitHubLink,
+      githubLinksFound: githubLinks.length
+    })
+    
+    return {
+      isValid: true,
+      isSecurityMVP,
+      hasGitHubLink,
+      displayName,
+      awardCategory,
+      detectedGitHubLinks: githubLinks
+    }
+  } catch (error) {
+    console.error(`[MVP Auth] Error fetching MVP profile via proxy:`, error)
+    return {
+      isValid: false,
+      isSecurityMVP: false,
+      hasGitHubLink: false
+    }
+  }
+}
+
 export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
   console.log(`[MVP Auth] ========== Starting verification for user: ${githubUsername} ==========`)
   
@@ -101,6 +193,7 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
   }
   
   let detectedMVPUrl: string | undefined
+  let detectedGitHubLinks: string[] | undefined
   
   try {
     console.log(`[MVP Auth] Step 1: Fetching GitHub user data...`)
@@ -123,30 +216,69 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
       detectedMVPUrl = mvpProfileUrl
       console.log(`[MVP Auth] ✓ Check 1 PASSED: MVP URL found on GitHub profile`)
       
-      console.log(`[MVP Auth] ⚠️  Note: Full MVP profile verification requires a backend service to avoid CORS restrictions`)
-      console.log(`[MVP Auth] For now, we'll grant access based on the presence of an MVP URL on the GitHub profile`)
+      console.log(`[MVP Auth] Step 3: Fetching MVP profile via LLM proxy...`)
+      const mvpData = await fetchMVPProfileViaProxy(mvpProfileUrl, githubUsername)
       
-      checks.hasValidMVPProfile = true
-      checks.isSecurityMVP = true
-      checks.hasGitHubOnMVPProfile = true
-      
-      const displayName = githubUserData.name || githubUsername
-      
-      console.log(`[MVP Auth] ========== Verification Summary ==========`)
-      console.log(`[MVP Auth] MVP URL on GitHub: ✓ PASS`)
-      console.log(`[MVP Auth] FINAL RESULT: ✓ VERIFIED (simplified check)`)
-      console.log(`[MVP Auth] ===========================================`)
-      
-      return {
-        isVerified: true,
-        detectedMVPUrl,
-        displayName,
-        checks,
-        profile: {
-          displayName,
-          awardCategory: 'Security',
-          activities: []
+      if (mvpData.isValid) {
+        checks.hasValidMVPProfile = true
+        console.log(`[MVP Auth] ✓ Check 2 PASSED: MVP profile is valid and accessible`)
+        
+        if (mvpData.isSecurityMVP) {
+          checks.isSecurityMVP = true
+          console.log(`[MVP Auth] ✓ Check 3 PASSED: Award Category is Security`)
+        } else {
+          console.log(`[MVP Auth] ✗ Check 3 FAILED: Award Category is "${mvpData.awardCategory}", not Security`)
         }
+        
+        if (mvpData.hasGitHubLink) {
+          checks.hasGitHubOnMVPProfile = true
+          detectedGitHubLinks = mvpData.detectedGitHubLinks
+          console.log(`[MVP Auth] ✓ Check 4 PASSED: GitHub profile link found on MVP profile`)
+        } else {
+          console.log(`[MVP Auth] ✗ Check 4 FAILED: GitHub profile link not found on MVP profile`)
+          if (mvpData.detectedGitHubLinks && mvpData.detectedGitHubLinks.length > 0) {
+            console.log(`[MVP Auth] GitHub links found (but not matching):`, mvpData.detectedGitHubLinks)
+            detectedGitHubLinks = mvpData.detectedGitHubLinks
+          }
+        }
+        
+        const allChecksPassed = checks.hasMVPUrlOnGitHub && 
+                               checks.hasValidMVPProfile && 
+                               checks.isSecurityMVP && 
+                               checks.hasGitHubOnMVPProfile
+        
+        console.log(`[MVP Auth] ========== Verification Summary ==========`)
+        console.log(`[MVP Auth] MVP URL on GitHub: ${checks.hasMVPUrlOnGitHub ? '✓ PASS' : '✗ FAIL'}`)
+        console.log(`[MVP Auth] MVP Profile Valid: ${checks.hasValidMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
+        console.log(`[MVP Auth] Security MVP: ${checks.isSecurityMVP ? '✓ PASS' : '✗ FAIL'}`)
+        console.log(`[MVP Auth] GitHub on MVP: ${checks.hasGitHubOnMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
+        console.log(`[MVP Auth] FINAL RESULT: ${allChecksPassed ? '✓ VERIFIED' : '✗ NOT VERIFIED'}`)
+        console.log(`[MVP Auth] ===========================================`)
+        
+        if (allChecksPassed) {
+          return {
+            isVerified: true,
+            detectedMVPUrl,
+            detectedGitHubLinks,
+            displayName: mvpData.displayName,
+            checks,
+            profile: {
+              displayName: mvpData.displayName || githubUserData.name || githubUsername,
+              awardCategory: mvpData.awardCategory || 'Security',
+              activities: []
+            }
+          }
+        } else {
+          return {
+            isVerified: false,
+            error: 'Verification incomplete. Please check all requirements.',
+            detectedMVPUrl,
+            detectedGitHubLinks,
+            checks
+          }
+        }
+      } else {
+        console.log(`[MVP Auth] ✗ Check 2 FAILED: MVP profile could not be verified`)
       }
     } else {
       console.log(`[MVP Auth] ✗ Check 1 FAILED: No MVP URL found on GitHub profile`)
@@ -154,13 +286,17 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
     
     console.log(`[MVP Auth] ========== Verification Summary ==========`)
     console.log(`[MVP Auth] MVP URL on GitHub: ${checks.hasMVPUrlOnGitHub ? '✓ PASS' : '✗ FAIL'}`)
+    console.log(`[MVP Auth] MVP Profile Valid: ${checks.hasValidMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
+    console.log(`[MVP Auth] Security MVP: ${checks.isSecurityMVP ? '✓ PASS' : '✗ FAIL'}`)
+    console.log(`[MVP Auth] GitHub on MVP: ${checks.hasGitHubOnMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
     console.log(`[MVP Auth] FINAL RESULT: ✗ NOT VERIFIED`)
     console.log(`[MVP Auth] ===========================================`)
     
     return {
       isVerified: false,
-      error: 'No Microsoft MVP profile link found on your GitHub profile. Please add your MVP profile URL to your GitHub profile (bio, website, or social links).',
+      error: 'Verification failed. Please ensure all requirements are met.',
       detectedMVPUrl,
+      detectedGitHubLinks,
       checks
     }
   } catch (error) {

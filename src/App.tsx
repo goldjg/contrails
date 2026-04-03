@@ -43,7 +43,7 @@ function App() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const user = await spark.user()
+      const user = await window.spark.user()
       setCurrentUser(user)
     }
     loadUser()
