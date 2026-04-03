@@ -4,6 +4,7 @@ import { ConferenceCard } from '@/components/ConferenceCard'
 import { AddConferenceDialog } from '@/components/AddConferenceDialog'
 import { DateRangePicker } from '@/components/DateRangePicker'
 import { StatisticsSection } from '@/components/StatisticsSection'
+import { MVPProfile } from '@/components/MVPProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Conference, Attendance } from '@/lib/types'
@@ -36,6 +37,7 @@ function App() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
   const [hasSeeded, setHasSeeded] = useState(false)
+  const [selectedMVP, setSelectedMVP] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -168,6 +170,19 @@ function App() {
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
+    )
+  }
+
+  if (selectedMVP) {
+    return (
+      <MVPProfile
+        userId={selectedMVP.userId}
+        userName={selectedMVP.userName}
+        userAvatar={selectedMVP.userAvatar}
+        conferences={conferences || []}
+        attendances={attendances || []}
+        onBack={() => setSelectedMVP(null)}
+      />
     )
   }
 
@@ -321,6 +336,9 @@ function App() {
                   isUserAttending={isUserAttending(conference.id)}
                   onToggleAttendance={() => handleToggleAttendance(conference.id)}
                   currentUser={currentUser}
+                  onMVPClick={(userId, userName, userAvatar) => 
+                    setSelectedMVP({ userId, userName, userAvatar })
+                  }
                 />
               ))}
             </div>

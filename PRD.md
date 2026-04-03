@@ -54,6 +54,13 @@ This is a focused tool with conference browsing, attendance tracking, and user p
 - **Progression**: Page loads → Statistics section appears above conference cards → User views metrics and trends → Can identify patterns in conference activity
 - **Success criteria**: Accurate calculations, visual bar charts for trends, clear hierarchy of information, responsive on all devices
 
+### MVP Profiles & Attendance History
+- **Functionality**: View individual MVP profiles showing their complete conference attendance history, including upcoming and past conferences attended, statistics (total conferences, upcoming count, past count, countries visited), and top topics of interest
+- **Purpose**: Enables MVPs to discover colleagues' conference patterns, identify networking opportunities, and track individual engagement
+- **Trigger**: User clicks on an MVP's name in conference attendee lists
+- **Progression**: User views attendee list → Clicks MVP name → Profile page loads → Shows attendance stats and history → User can navigate back to conferences
+- **Success criteria**: Complete attendance history displayed, clear separation of upcoming vs. past conferences, statistics accurately calculated, smooth navigation
+
 ## Edge Case Handling
 
 - **No Conferences**: Display encouraging empty state with "Add Conference" CTA for owners, informative message for others
@@ -61,6 +68,8 @@ This is a focused tool with conference browsing, attendance tracking, and user p
 - **No Attendees Yet**: Show "Be the first to attend!" messaging to encourage engagement
 - **Concurrent Conferences**: Clear visual separation and date/location prominence for scheduling conflicts
 - **Long Conference Names**: Truncate gracefully with ellipsis and full name on hover
+- **MVP With No Attendance**: Profile shows empty state with encouraging message
+- **Clickable Attendee Names**: All attendee names in conference cards are clickable to view their profiles
 
 ## Design Direction
 

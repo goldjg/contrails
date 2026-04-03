@@ -15,6 +15,7 @@ interface ConferenceCardProps {
   isUserAttending: boolean
   onToggleAttendance: () => void
   currentUser: { login: string; avatarUrl: string }
+  onMVPClick?: (userId: string, userName: string, userAvatar: string) => void
 }
 
 export function ConferenceCard({
@@ -22,7 +23,8 @@ export function ConferenceCard({
   attendances,
   isUserAttending,
   onToggleAttendance,
-  currentUser
+  currentUser,
+  onMVPClick
 }: ConferenceCardProps) {
   const [showAttendees, setShowAttendees] = useState(false)
 
@@ -138,9 +140,10 @@ export function ConferenceCard({
                     >
                       <div className="mt-3 space-y-2">
                         {attendances.map((attendance) => (
-                          <div
+                          <button
                             key={attendance.userId}
-                            className="flex items-center gap-3 p-2 rounded-md bg-secondary/50"
+                            onClick={() => onMVPClick?.(attendance.userId, attendance.userName, attendance.userAvatar)}
+                            className="w-full flex items-center gap-3 p-2 rounded-md bg-secondary/50 hover:bg-secondary transition-colors text-left"
                           >
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={attendance.userAvatar} alt={attendance.userName} />
@@ -154,7 +157,7 @@ export function ConferenceCard({
                                 <span className="text-xs text-muted-foreground ml-1">(you)</span>
                               )}
                             </span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </motion.div>
