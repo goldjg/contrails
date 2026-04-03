@@ -1,19 +1,17 @@
 export interface MVPProfile {
-  activities: string[
+  displayName: string
   activities: string[]
   awardCategory: string
- 
+}
 
+export interface VerificationResult {
+  isVerified: boolean
+  error?: string
+}
 
+async function fetchMVPProfile(url: string): Promise<MVPProfile | null> {
   try {
-    if (!respons
-    const html = await r
-    const displayNameM
- 
-
-      .filter(url => url.includes('github.com'))
-    con
-                              html.match(/<dt[^
+    const response = await fetch(url)
     if (!response.ok) return null
     
     const html = await response.text()
@@ -34,19 +32,19 @@ export interface MVPProfile {
     return {
       displayName,
       activities,
-    const mvpProfil
+      awardCategory
     }
   } catch (error) {
     console.error('Error fetching MVP profile:', error)
-    }
+    return null
   }
- 
+}
 
 function isGitHubUrlMatch(url: string, githubUsername: string): boolean {
   const normalizedUrl = url.toLowerCase()
-    const hasGitHubLink = mvpProfile.activities.some(url 
+  const normalizedUsername = githubUsername.toLowerCase()
   return normalizedUrl.includes(`github.com/${normalizedUsername}`)
- 
+}
 
 export async function verifyMVPAccess(githubUsername: string): Promise<VerificationResult> {
   try {
@@ -54,37 +52,36 @@ export async function verifyMVPAccess(githubUsername: string): Promise<Verificat
     
     const mvpProfile = await fetchMVPProfile(mvpProfileUrl)
     if (!mvpProfile) {
-    return {
+      return {
         isVerified: false,
         error: 'No Microsoft MVP profile found. Please ensure you have a public MVP profile at ' + mvpProfileUrl
       }
+    }
 
-
-
+    if (!mvpProfile.awardCategory.toLowerCase().includes('security')) {
       return {
         isVerified: false,
         error: `Your MVP Award Category is "${mvpProfile.awardCategory}". This app is restricted to Security MVPs only.`
-
+      }
     }
 
     const hasGitHubLink = mvpProfile.activities.some(url => isGitHubUrlMatch(url, githubUsername))
 
+    if (!hasGitHubLink) {
+      return {
+        isVerified: false,
+        error: 'Your GitHub username was not found in your MVP profile activities. Please add your GitHub profile to your MVP activities.'
+      }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return {
+      isVerified: true
+    }
+  } catch (error) {
+    console.error('Error verifying MVP access:', error)
+    return {
+      isVerified: false,
+      error: 'An error occurred while verifying your MVP status. Please try again later.'
+    }
+  }
+}
