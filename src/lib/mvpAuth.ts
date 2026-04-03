@@ -101,7 +101,7 @@ function extractMVPProfileUrl(userData: GitHubUser): string | null {
   return null
 }
 
-async function fetchMVPProfileViaProxy(mvpProfileUrl: string, githubUsername: string): Promise<{
+async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): Promise<{
   isValid: boolean
   isSecurityMVP: boolean
   hasGitHubLink: boolean
@@ -109,95 +109,133 @@ async function fetchMVPProfileViaProxy(mvpProfileUrl: string, githubUsername: st
   awardCategory?: string
   detectedGitHubLinks?: string[]
 }> {
-  console.log(`[MVP Auth] Fetching MVP profile via LLM proxy: ${mvpProfileUrl}`)
-  
+  console.log(`[MVP Auth] Fetching MVP profile page: ${mvpProfileUrl}`)
+
+  let html: string | null = null
+
+  // Try a direct fetch first (works if the server sends permissive CORS headers)
   try {
-    const promptText = `You are a web scraping assistant. Your task is to fetch the content from this Microsoft MVP profile page: ${mvpProfileUrl}
-
-Extract the following information and return it in JSON format:
-
-1. The MVP's display name (usually shown as the person's full name prominently at the top)
-2. The "Award Category" field value (look for text like "Security", "Azure", "Developer Technologies", "Microsoft 365", etc.)
-3. All URLs containing "github.com" anywhere on the page (check activities section, social links, bio, etc.)
-
-Important notes:
-- The Award Category is typically shown as a label or heading on the profile
-- GitHub links may appear in various formats: github.com/username, full profile URLs, or in activity descriptions
-- We're looking for the GitHub username "${githubUsername}" specifically - check if any GitHub URL contains this username
-
-Return ONLY a valid JSON object with this exact structure (no additional text):
-{
-  "displayName": "Full name from the profile",
-  "awardCategory": "The award category text (e.g., Security)",
-  "githubLinks": ["list", "of", "github.com", "urls", "found"],
-  "error": ""
-}
-
-If you cannot access the URL or encounter errors, return:
-{
-  "error": "Description of the error",
-  "displayName": "",
-  "awardCategory": "",
-  "githubLinks": []
-}`
-    
-    console.log(`[MVP Auth] Sending request to LLM proxy...`)
-    const response = await window.spark.llm(promptText, "gpt-4o", true)
-    console.log(`[MVP Auth] LLM proxy response received:`, response)
-    
-    // Strip markdown code fences that LLMs commonly wrap around JSON responses
-    const cleanedResponse = response.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-    
-    const parsedResponse = JSON.parse(cleanedResponse)
-    
-    // Check for meaningful error content - LLMs sometimes return "None", "No error", "N/A" etc.
-    // instead of an empty string, so a simple truthy check causes false negatives
-    const errorText = typeof parsedResponse.error === 'string' ? parsedResponse.error.trim() : ''
-    const hasError = errorText !== '' &&
-      !/^(none|no error|no errors|n\/a|null|false|no|0)$/i.test(errorText)
-    
-    if (hasError) {
-      console.log(`[MVP Auth] LLM proxy returned error:`, parsedResponse.error)
-      return {
-        isValid: false,
-        isSecurityMVP: false,
-        hasGitHubLink: false
-      }
-    }
-    
-    const displayName = parsedResponse.displayName || ''
-    const awardCategory = parsedResponse.awardCategory || ''
-    const githubLinks = parsedResponse.githubLinks || []
-    
-    const isSecurityMVP = awardCategory.toLowerCase().includes('security')
-    const expectedGitHubUrl = `https://github.com/${githubUsername}`
-    const hasGitHubLink = githubLinks.some((link: string) => 
-      link.toLowerCase().includes(githubUsername.toLowerCase())
-    )
-    
-    console.log(`[MVP Auth] Parsed MVP profile:`, {
-      displayName,
-      awardCategory,
-      isSecurityMVP,
-      hasGitHubLink,
-      githubLinksFound: githubLinks.length
+    const response = await fetch(mvpProfileUrl, {
+      headers: { Accept: 'text/html,application/xhtml+xml' }
     })
-    
-    return {
-      isValid: true,
-      isSecurityMVP,
-      hasGitHubLink,
-      displayName,
-      awardCategory,
-      detectedGitHubLinks: githubLinks
+    if (response.ok) {
+      html = await response.text()
+      console.log(`[MVP Auth] Direct fetch succeeded (${html.length} bytes)`)
+    } else {
+      console.log(`[MVP Auth] Direct fetch returned HTTP ${response.status}, trying CORS proxy`)
     }
-  } catch (error) {
-    console.error(`[MVP Auth] Error fetching MVP profile via proxy:`, error)
-    return {
-      isValid: false,
-      isSecurityMVP: false,
-      hasGitHubLink: false
+  } catch (err) {
+    console.log(`[MVP Auth] Direct fetch failed (likely CORS), trying proxy...`, err)
+  }
+
+  // Fall back to a CORS proxy.
+  // Note: the MVP profile URL is passed to api.allorigins.win so that service can
+  // see which URL is being proxied. The profile pages are already public, so no
+  // private data is disclosed beyond what anyone can view in a browser.
+  if (!html) {
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(mvpProfileUrl)}`
+      const response = await fetch(proxyUrl)
+      if (response.ok) {
+        const data = await response.json() as { contents: string; status: { http_code: number } }
+        if (data.status?.http_code === 200 && data.contents) {
+          html = data.contents
+          console.log(`[MVP Auth] Proxy fetch succeeded (${html.length} bytes)`)
+        } else {
+          console.log(`[MVP Auth] Proxy returned HTTP ${data.status?.http_code}`)
+        }
+      }
+    } catch (err) {
+      console.error(`[MVP Auth] Proxy fetch also failed:`, err)
     }
+  }
+
+  if (!html) {
+    console.error(`[MVP Auth] Could not retrieve MVP profile page`)
+    return { isValid: false, isSecurityMVP: false, hasGitHubLink: false }
+  }
+
+  // ── Parse HTML ──────────────────────────────────────────────────────────────
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+
+  // 1. Display name – try og:title, then h1, then __NEXT_DATA__ JSON
+  let displayName = ''
+  const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content')
+  if (ogTitle) {
+    displayName = ogTitle.replace(/\s*\|.*$/, '').trim()
+  } else {
+    displayName = doc.querySelector('h1')?.textContent?.trim() ?? ''
+  }
+  if (!displayName) {
+    const m = /"(?:displayName|fullName|name)"\s*:\s*"([^"]+)"/i.exec(html)
+    if (m) displayName = m[1].trim()
+  }
+
+  // 2. Award category – check embedded JSON first, then HTML text
+  let awardCategory = ''
+  const categoryJsonPatterns = [
+    /"awardCategory(?:Name)?"\s*:\s*"([^"]+)"/i,
+    /"mvpCategory"\s*:\s*"([^"]+)"/i,
+  ]
+  for (const pattern of categoryJsonPatterns) {
+    const m = html.match(pattern)
+    if (m) { awardCategory = m[1].trim(); break }
+  }
+  if (!awardCategory) {
+    // Look for the text "Award Category" followed closely by a value in the DOM.
+    // Limit to elements likely to be labels (span, dt, p, div, td, th, li).
+    const labelEls = doc.querySelectorAll('span, dt, p, div, td, th, li, label')
+    labelEls.forEach(el => {
+      if (awardCategory) return
+      // Only inspect leaf-like nodes so we don't match huge containers
+      const text = el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE
+        ? el.textContent?.trim() ?? ''
+        : ''
+      if (/^award\s+category$/i.test(text)) {
+        const next = el.nextElementSibling ?? el.parentElement?.nextElementSibling
+        const val = next?.textContent?.trim()
+        if (val) awardCategory = val
+      }
+    })
+  }
+
+  const isSecurityMVP = awardCategory.toLowerCase().includes('security') ||
+    // Broad fallback: look for "Security" appearing as a standalone award category in any JSON
+    /"(?:awardCategory(?:Name)?|mvpCategory|category)"\s*:\s*"[^"]*security[^"]*"/i.test(html)
+
+  // 3. GitHub links – collect via the regex scan (which already requires the full
+  //    github.com hostname at the start of the URL) and deduplicate via a Set.
+  const githubLinks = new Set<string>()
+  const ghPattern = /https?:\/\/(?:www\.)?github\.com\/[^\s"'<>,)]+/gi
+  for (const m of html.matchAll(ghPattern)) {
+    githubLinks.add(m[0].replace(/\/+$/, ''))
+  }
+
+  const githubLinksArr = [...githubLinks]
+  // Match only when the username is immediately followed by '/', end-of-string,
+  // or a query/fragment character – prevents 'test' matching 'testing'.
+  const usernameSegmentRe = new RegExp(
+    `github\\.com/${githubUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$|[?#])`,
+    'i'
+  )
+  const hasGitHubLink = githubLinksArr.some(link => usernameSegmentRe.test(link))
+
+  console.log(`[MVP Auth] Parsed MVP profile:`, {
+    displayName,
+    awardCategory,
+    isSecurityMVP,
+    hasGitHubLink,
+    githubLinksFound: githubLinksArr.length
+  })
+
+  return {
+    isValid: true,
+    isSecurityMVP,
+    hasGitHubLink,
+    displayName,
+    awardCategory,
+    detectedGitHubLinks: githubLinksArr
   }
 }
 
@@ -244,9 +282,9 @@ export async function verifyMVPAccess(
       console.log(`[MVP Auth] ✓ Check 1 PASSED: MVP URL found on GitHub profile`)
       
       console.log(`[MVP Auth] Step 3: Fetching MVP profile via LLM proxy...`)
-      onProgress?.('fetching-mvp-profile', 'Analyzing MVP profile page (this may take 10-15 seconds)')
+      onProgress?.('fetching-mvp-profile', 'Reading MVP profile page')
       
-      const mvpData = await fetchMVPProfileViaProxy(mvpProfileUrl, githubUsername)
+      const mvpData = await fetchMVPProfile(mvpProfileUrl, githubUsername)
       
       if (mvpData.isValid) {
         checks.hasValidMVPProfile = true

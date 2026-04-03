@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { verifyMVPAccess, VerificationChecks, VerificationStep } from '@/lib/mvpAuth'
-import { Shield, CheckCircle, XCircle, Link as LinkIcon, Clock, Sparkle } from '@phosphor-icons/react'
+import { Shield, CheckCircle, XCircle, Link as LinkIcon, Clock } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -80,8 +80,8 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
       },
       'fetching-mvp-profile': {
         icon: '✨',
-        title: 'Analyzing MVP Profile',
-        description: 'This step uses AI to read your MVP profile and may take 10-15 seconds'
+        title: 'Reading MVP Profile',
+        description: 'Fetching your MVP profile page'
       },
       'validating-category': {
         icon: '🛡️',
@@ -139,17 +139,14 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                 <div className="flex-1 space-y-1">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     {currentStepDetail.title}
-                    {currentStep === 'fetching-mvp-profile' && (
-                      <Sparkle size={16} className="text-primary animate-pulse" weight="fill" />
-                    )}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {currentMessage}
                   </p>
                   {currentStep === 'fetching-mvp-profile' && (
-                    <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                      <Clock size={16} className="text-amber-600 flex-shrink-0 mt-0.5" weight="bold" />
-                      <p className="text-xs text-amber-800">
+                    <div className="mt-3 flex items-start gap-2 bg-blue-50 border border-blue-200 rounded px-3 py-2">
+                      <Clock size={16} className="text-blue-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      <p className="text-xs text-blue-800">
                         <strong>Please wait:</strong> {currentStepDetail.description}
                       </p>
                     </div>
@@ -169,7 +166,7 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
               </div>
               <div className="flex items-center gap-2">
                 <div className={`h-2 w-2 rounded-full ${progress >= 50 ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <span className={progress >= 50 ? 'text-foreground font-medium' : ''}>MVP profile analysis (AI)</span>
+                <span className={progress >= 50 ? 'text-foreground font-medium' : ''}>MVP profile fetch</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className={`h-2 w-2 rounded-full ${progress >= 75 ? 'bg-green-500' : 'bg-gray-300'}`} />
