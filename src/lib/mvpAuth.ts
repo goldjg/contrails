@@ -1,19 +1,19 @@
 export interface MVPProfile {
-  displayName: string
+  activities: string[
   activities: string[]
   awardCategory: string
-}
+ 
 
-async function fetchGitHubBio(username: string): Promise<string | null> {
-  try {
-    const response = await fetch(`https://api.github.com/users/${username}`)
-    if (!response.ok) return null
-    
-    const data = await response.json()
     return data.bio || null
-  } catch (error) {
-    console.error('Error fetching GitHub bio:', error)
-    return null
+    con
+  }
+
+  tr
+    if (!response.ok) return null
+    const html = await resp
+    const displayNa
+    
+    const activ
   }
 }
 
@@ -23,7 +23,7 @@ async function fetchMVPProfile(mvpProfileUrl: string): Promise<MVPProfile | null
     if (!response.ok) return null
     
     const html = await response.text()
-    
+func
     const displayNameMatch = html.match(/<h1[^>]*class="[^"]*c-subheading[^"]*"[^>]*>([^<]+)<\/h1>/i)
     const displayName = displayNameMatch ? displayNameMatch[1].trim() : 'MVP'
     
@@ -41,70 +41,70 @@ async function fetchMVPProfile(mvpProfileUrl: string): Promise<MVPProfile | null
       displayName,
       activities,
       awardCategory
-    }
-  } catch (error) {
-    console.error('Error fetching MVP profile:', error)
-    return null
-  }
-}
+    i
 
-function isGitHubUrlMatch(activities: string[], githubUsername: string): boolean {
-  const normalizedUsername = githubUsername.toLowerCase()
+    const mvpProfile = await fetchMVPProfile(mvpProfile
+    if (!mvpPro
+   
+ 
+
+      return {
+        error: `Your MVP Award Category is "${mvpProfile.
   
-  return activities.some(activity => {
-    const url = activity.toLowerCase()
-    return url.includes(`github.com/${normalizedUsername}`) ||
-           url.includes(`github.com/${normalizedUsername}/`)
-  })
-}
-
-function isSecurityCategory(awardCategory: string): boolean {
-  return awardCategory.toLowerCase().includes('security')
-}
-
-export async function verifyMVPAccess(githubUsername: string): Promise<{
-  isVerified: boolean
-  mvpProfileUrl?: string
-  displayName?: string
-  error?: string
-}> {
-  try {
-    const bio = await fetchGitHubBio(githubUsername)
-    
-    if (!bio) {
-      return {
+    const hasGitHubLink = isGitHubUrlM
+    if (!hasGitHubLink) {
         isVerified: false,
-        error: 'Could not fetch your GitHub profile or your bio is empty. Please ensure your profile is public and contains your MVP profile URL.'
       }
-    }
 
-    const mvpUrlMatch = bio.match(/https?:\/\/mvp\.microsoft\.com\/[^\s)]+/i)
-    
-    if (!mvpUrlMatch) {
-      return {
-        isVerified: false,
-        error: 'No Microsoft MVP profile URL found in your GitHub bio. Please add your MVP profile URL to your GitHub bio.'
-      }
-    }
+ 
 
-    const mvpProfileUrl = mvpUrlMatch[0]
-    const mvpProfile = await fetchMVPProfile(mvpProfileUrl)
+  } catch (error) {
+    return {
+ 
 
-    if (!mvpProfile) {
-      return {
-        isVerified: false,
-        error: 'Could not access your MVP profile. Please ensure the URL in your GitHub bio is correct and publicly accessible.'
-      }
-    }
 
-    if (!isSecurityCategory(mvpProfile.awardCategory)) {
-      return {
-        isVerified: false,
-        error: `Your MVP Award Category is "${mvpProfile.awardCategory}". Only Security MVPs can access ConTrails.`
-      }
-    }
 
-    const hasGitHubLink = isGitHubUrlMatch(mvpProfile.activities, githubUsername)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     if (!hasGitHubLink) {
       return {
@@ -125,4 +125,4 @@ export async function verifyMVPAccess(githubUsername: string): Promise<{
       error: 'An unexpected error occurred during verification. Please try again later.'
     }
   }
-}
+
