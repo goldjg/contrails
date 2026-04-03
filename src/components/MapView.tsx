@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { Conference, Attendance } from '@/lib/types'
-import { MapPin, Users, Plus, Minus, ArrowsOutSimple } from '@phosphor-icons/react'
+import { MapPin, Users, Plus, Minus, ArrowsOutSimple, Fire } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { format, parseISO } from 'date-fns'
 import * as d3 from 'd3'
 import { feature } from 'topojson-client'
@@ -57,6 +59,7 @@ function getColorForAttendanceCount(count: number): {
 
 export function MapView({ conferences, attendances }: MapViewProps) {
   const [selectedConference, setSelectedConference] = useState<ConferenceWithCount | null>(null)
+  const [showHeatmap, setShowHeatmap] = useState(true)
   const svgRef = useRef<SVGSVGElement>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 })
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
@@ -154,6 +157,48 @@ export function MapView({ conferences, attendances }: MapViewProps) {
             d3.select(this).attr('fill', 'oklch(0.80 0.03 240)')
           })
 
+        if (showHeatmap && conferencesWithCounts.length > 0) {
+          const heatmapGroup = g.append('g').attr('class', 'heatmap')
+          
+          const heatmapRadius = 120
+          
+          conferencesWithCounts.forEach(conference => {
+            if (!conference.coordinates) return
+            
+            const [x, y] = projection([conference.coordinates.lng, conference.coordinates.lat]) || [0, 0]
+            
+            const radialGradient = svg.append('defs')
+              .append('radialGradient')
+              .attr('id', `heatmap-gradient-${conference.id}`)
+              .attr('cx', '50%')
+              .attr('cy', '50%')
+              .attr('r', '50%')
+            
+            radialGradient.append('stop')
+              .attr('offset', '0%')
+              .attr('stop-color', 'oklch(0.65 0.20 30)')
+              .attr('stop-opacity', 0.4)
+            
+            radialGradient.append('stop')
+              .attr('offset', '50%')
+              .attr('stop-color', 'oklch(0.60 0.18 25)')
+              .attr('stop-opacity', 0.2)
+            
+            radialGradient.append('stop')
+              .attr('offset', '100%')
+              .attr('stop-color', 'oklch(0.55 0.15 20)')
+              .attr('stop-opacity', 0)
+            
+            heatmapGroup.append('circle')
+              .attr('cx', x)
+              .attr('cy', y)
+              .attr('r', heatmapRadius)
+              .attr('fill', `url(#heatmap-gradient-${conference.id})`)
+              .attr('pointer-events', 'none')
+              .style('mix-blend-mode', 'multiply')
+          })
+        }
+
         const markers = g.append('g').attr('class', 'markers')
 
         conferencesWithCounts.forEach(conference => {
@@ -202,7 +247,7 @@ export function MapView({ conferences, attendances }: MapViewProps) {
       .catch(error => {
         console.error('Error loading world map:', error)
       })
-  }, [dimensions, conferencesWithCounts])
+  }, [dimensions, conferencesWithCounts, showHeatmap])
 
   const handleZoomIn = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return
@@ -228,6 +273,18 @@ export function MapView({ conferences, attendances }: MapViewProps) {
         <div className="flex items-center gap-3">
           <MapPin size={28} weight="bold" className="text-primary" />
           <h2 className="text-2xl font-bold">Conference Map</h2>
+        </div>
+        
+        <div className="flex items-center gap-3 bg-card border-2 border-border rounded-lg px-4 py-2 shadow-sm">
+          <Fire size={20} weight="bold" className={showHeatmap ? "text-destructive" : "text-muted-foreground"} />
+          <Label htmlFor="heatmap-toggle" className="text-sm font-medium cursor-pointer">
+            Density Heatmap
+          </Label>
+          <Switch
+            id="heatmap-toggle"
+            checked={showHeatmap}
+            onCheckedChange={setShowHeatmap}
+          />
         </div>
       </div>
 
