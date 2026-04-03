@@ -44,8 +44,6 @@ interface GitHubUser {
 }
 
 async function fetchGitHubProfile(username: string): Promise<GitHubUser> {
-  console.log(`[MVP Auth] Fetching GitHub user data for: ${username}`)
-  
   try {
     const response = await fetch(`https://api.github.com/users/${username}`, {
       headers: {
@@ -53,23 +51,13 @@ async function fetchGitHubProfile(username: string): Promise<GitHubUser> {
       }
     })
     
-    console.log(`[MVP Auth] GitHub API response status: ${response.status}`)
-    
     if (!response.ok) {
-      console.error(`[MVP Auth] GitHub API request failed with status ${response.status}`)
       throw new Error(`GitHub API request failed with status ${response.status}`)
     }
     
     const userData: GitHubUser = await response.json()
-    console.log(`[MVP Auth] GitHub user data retrieved:`, {
-      bio: userData.bio?.substring(0, 100),
-      blog: userData.blog,
-      socialAccounts: userData.social_accounts?.length || 0
-    })
-    
     return userData
   } catch (error) {
-    console.error(`[MVP Auth] Error fetching GitHub profile:`, error)
     throw error
   }
 }
@@ -77,8 +65,6 @@ async function fetchGitHubProfile(username: string): Promise<GitHubUser> {
 const MVP_URL_PATTERN = /https?:\/\/mvp\.microsoft\.com\/[^\s"'<>]+/
 
 function extractMVPProfileUrl(userData: GitHubUser): string | null {
-  console.log(`[MVP Auth] Searching for MVP profile URL in GitHub user data`)
-  
   const textsToSearch: string[] = []
   
   if (userData.bio) textsToSearch.push(userData.bio)
@@ -92,53 +78,39 @@ function extractMVPProfileUrl(userData: GitHubUser): string | null {
   for (const text of textsToSearch) {
     const mvpUrlMatch = text.match(MVP_URL_PATTERN)
     if (mvpUrlMatch) {
-      console.log(`[MVP Auth] Found MVP profile URL: ${mvpUrlMatch[0]}`)
       return mvpUrlMatch[0]
     }
   }
-  
-  console.log(`[MVP Auth] No MVP profile URL found in GitHub user data`)
-  console.log(`[MVP Auth] Searched in:`, textsToSearch)
   
   return null
 }
 
 async function extractMVPProfileUrlFromGitHubPage(githubUsername: string): Promise<string | null> {
-  // The GitHub profile HTML page renders social/website links as:
-  //   <li><a href="https://mvp.microsoft.com/...">...</a></li>
-  // These links may not appear in the API response's bio/blog/social_accounts fields,
-  // so we fall back to parsing the HTML page directly.
-  console.log(`[MVP Auth] Falling back to HTML scrape of github.com/${githubUsername}`)
   try {
     const response = await fetch(`https://github.com/${githubUsername}`, {
       headers: { Accept: 'text/html,application/xhtml+xml' }
     })
     if (!response.ok) {
-      console.log(`[MVP Auth] GitHub HTML page returned HTTP ${response.status}`)
       return null
     }
     const html = await response.text()
     const parser = new DOMParser()
     const doc = parser.parseFromString(html, 'text/html')
 
-    // Scan all anchor hrefs in the document
     for (const a of Array.from(doc.querySelectorAll('a[href]'))) {
       const href = a.getAttribute('href') ?? ''
       const m = href.match(MVP_URL_PATTERN)
       if (m) {
-        console.log(`[MVP Auth] Found MVP profile URL via GitHub HTML page: ${m[0]}`)
         return m[0]
       }
     }
 
-    // Raw-text fallback (catches URLs in data attributes or script blocks)
     const m = html.match(MVP_URL_PATTERN)
     if (m) {
-      console.log(`[MVP Auth] Found MVP profile URL via GitHub HTML regex: ${m[0]}`)
       return m[0]
     }
   } catch (err) {
-    console.log(`[MVP Auth] GitHub HTML page fetch failed:`, err)
+    return null
   }
   return null
 }
@@ -151,29 +123,19 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
   awardCategory?: string
   detectedGitHubLinks?: string[]
 }> {
-  console.log(`[MVP Auth] Fetching MVP profile page: ${mvpProfileUrl}`)
-
   let html: string | null = null
 
-  // Try a direct fetch first (works if the server sends permissive CORS headers)
   try {
     const response = await fetch(mvpProfileUrl, {
       headers: { Accept: 'text/html,application/xhtml+xml' }
     })
     if (response.ok) {
       html = await response.text()
-      console.log(`[MVP Auth] Direct fetch succeeded (${html.length} bytes)`)
-    } else {
-      console.log(`[MVP Auth] Direct fetch returned HTTP ${response.status}, trying CORS proxy`)
     }
   } catch (err) {
-    console.log(`[MVP Auth] Direct fetch failed (likely CORS), trying proxy...`, err)
+    html = null
   }
 
-  // Fall back to a CORS proxy.
-  // Note: the MVP profile URL is passed to api.allorigins.win so that service can
-  // see which URL is being proxied. The profile pages are already public, so no
-  // private data is disclosed beyond what anyone can view in a browser.
   if (!html) {
     try {
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(mvpProfileUrl)}`
@@ -183,19 +145,14 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
         if (data && typeof data === 'object' && 'contents' in data && data.contents && typeof data.contents === 'string') {
           const contents = data.contents
           html = contents
-          console.log(`[MVP Auth] Proxy fetch succeeded (${contents.length} bytes)`)
-        } else {
-          const statusCode = data && typeof data === 'object' && 'status' in data && data.status && typeof data.status === 'object' && 'http_code' in data.status ? data.status.http_code : 'unknown'
-          console.log(`[MVP Auth] Proxy returned HTTP ${statusCode}`)
         }
       }
     } catch (err) {
-      console.error(`[MVP Auth] Proxy fetch also failed:`, err)
+      html = null
     }
   }
 
   if (!html || typeof html !== 'string') {
-    console.error(`[MVP Auth] Could not retrieve MVP profile page`)
     return { isValid: false, isSecurityMVP: false, hasGitHubLink: false }
   }
 
@@ -307,14 +264,6 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
   )
   const hasGitHubLink = githubLinksArr.some(link => usernameSegmentRe.test(link))
 
-  console.log(`[MVP Auth] Parsed MVP profile:`, {
-    displayName,
-    awardCategory,
-    isSecurityMVP,
-    hasGitHubLink,
-    githubLinksFound: githubLinksArr.length
-  })
-
   return {
     isValid: true,
     isSecurityMVP,
@@ -329,8 +278,6 @@ export async function verifyMVPAccess(
   githubUsername: string,
   onProgress?: ProgressCallback
 ): Promise<MVPVerificationResult> {
-  console.log(`[MVP Auth] ========== Starting verification for user: ${githubUsername} ==========`)
-  
   const checks: VerificationChecks = {
     hasMVPUrlOnGitHub: false,
     hasValidMVPProfile: false,
@@ -342,14 +289,12 @@ export async function verifyMVPAccess(
   let detectedGitHubLinks: string[] | undefined
   
   try {
-    console.log(`[MVP Auth] Step 1: Fetching GitHub user data...`)
     onProgress?.('fetching-github', `Fetching GitHub profile for @${githubUsername}`)
     
     let githubUserData: GitHubUser
     try {
       githubUserData = await fetchGitHubProfile(githubUsername)
     } catch (error) {
-      console.error(`[MVP Auth] FATAL: Cannot fetch GitHub user data`)
       onProgress?.('complete', 'Verification failed')
       return {
         isVerified: false,
@@ -358,37 +303,27 @@ export async function verifyMVPAccess(
       }
     }
     
-    console.log(`[MVP Auth] Step 2: Extracting MVP profile URL from GitHub profile...`)
     onProgress?.('extracting-mvp-url', 'Searching for MVP profile URL on GitHub')
     
     let mvpProfileUrl = extractMVPProfileUrl(githubUserData)
     if (!mvpProfileUrl) {
-      // API fields (bio, blog, social_accounts) didn't contain the MVP URL.
-      // Fall back to parsing the rendered GitHub profile HTML page, which shows
-      // social/website links as <li><a href="https://mvp.microsoft.com/...">
       mvpProfileUrl = await extractMVPProfileUrlFromGitHubPage(githubUsername)
     }
     if (mvpProfileUrl) {
       checks.hasMVPUrlOnGitHub = true
       detectedMVPUrl = mvpProfileUrl
-      console.log(`[MVP Auth] ✓ Check 1 PASSED: MVP URL found on GitHub profile`)
       
-      console.log(`[MVP Auth] Step 3: Fetching MVP profile page...`)
       onProgress?.('fetching-mvp-profile', 'Reading MVP profile page')
       
       const mvpData = await fetchMVPProfile(mvpProfileUrl, githubUsername)
       
       if (mvpData.isValid) {
         checks.hasValidMVPProfile = true
-        console.log(`[MVP Auth] ✓ Check 2 PASSED: MVP profile is valid and accessible`)
         
         onProgress?.('validating-category', 'Validating Security MVP status')
         
         if (mvpData.isSecurityMVP) {
           checks.isSecurityMVP = true
-          console.log(`[MVP Auth] ✓ Check 3 PASSED: Award Category is Security`)
-        } else {
-          console.log(`[MVP Auth] ✗ Check 3 FAILED: Award Category is "${mvpData.awardCategory}", not Security`)
         }
         
         onProgress?.('checking-github-link', 'Verifying GitHub profile link')
@@ -396,11 +331,8 @@ export async function verifyMVPAccess(
         if (mvpData.hasGitHubLink) {
           checks.hasGitHubOnMVPProfile = true
           detectedGitHubLinks = mvpData.detectedGitHubLinks
-          console.log(`[MVP Auth] ✓ Check 4 PASSED: GitHub profile link found on MVP profile`)
         } else {
-          console.log(`[MVP Auth] ✗ Check 4 FAILED: GitHub profile link not found on MVP profile`)
           if (mvpData.detectedGitHubLinks && mvpData.detectedGitHubLinks.length > 0) {
-            console.log(`[MVP Auth] GitHub links found (but not matching):`, mvpData.detectedGitHubLinks)
             detectedGitHubLinks = mvpData.detectedGitHubLinks
           }
         }
@@ -411,14 +343,6 @@ export async function verifyMVPAccess(
                                checks.hasValidMVPProfile && 
                                checks.isSecurityMVP && 
                                checks.hasGitHubOnMVPProfile
-        
-        console.log(`[MVP Auth] ========== Verification Summary ==========`)
-        console.log(`[MVP Auth] MVP URL on GitHub: ${checks.hasMVPUrlOnGitHub ? '✓ PASS' : '✗ FAIL'}`)
-        console.log(`[MVP Auth] MVP Profile Valid: ${checks.hasValidMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
-        console.log(`[MVP Auth] Security MVP: ${checks.isSecurityMVP ? '✓ PASS' : '✗ FAIL'}`)
-        console.log(`[MVP Auth] GitHub on MVP: ${checks.hasGitHubOnMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
-        console.log(`[MVP Auth] FINAL RESULT: ${allChecksPassed ? '✓ VERIFIED' : '✗ NOT VERIFIED'}`)
-        console.log(`[MVP Auth] ===========================================`)
         
         if (allChecksPassed) {
           return {
@@ -443,21 +367,11 @@ export async function verifyMVPAccess(
           }
         }
       } else {
-        console.log(`[MVP Auth] ✗ Check 2 FAILED: MVP profile could not be verified`)
         onProgress?.('complete', 'Verification failed')
       }
     } else {
-      console.log(`[MVP Auth] ✗ Check 1 FAILED: No MVP URL found on GitHub profile`)
       onProgress?.('complete', 'Verification failed')
     }
-    
-    console.log(`[MVP Auth] ========== Verification Summary ==========`)
-    console.log(`[MVP Auth] MVP URL on GitHub: ${checks.hasMVPUrlOnGitHub ? '✓ PASS' : '✗ FAIL'}`)
-    console.log(`[MVP Auth] MVP Profile Valid: ${checks.hasValidMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
-    console.log(`[MVP Auth] Security MVP: ${checks.isSecurityMVP ? '✓ PASS' : '✗ FAIL'}`)
-    console.log(`[MVP Auth] GitHub on MVP: ${checks.hasGitHubOnMVPProfile ? '✓ PASS' : '✗ FAIL'}`)
-    console.log(`[MVP Auth] FINAL RESULT: ✗ NOT VERIFIED`)
-    console.log(`[MVP Auth] ===========================================`)
     
     return {
       isVerified: false,
@@ -467,7 +381,6 @@ export async function verifyMVPAccess(
       checks
     }
   } catch (error) {
-    console.error(`[MVP Auth] ✗ UNEXPECTED ERROR during verification:`, error)
     onProgress?.('complete', 'Verification error')
     return {
       isVerified: false,
