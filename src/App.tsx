@@ -5,6 +5,7 @@ import { AnalyticsView } from '@/components/AnalyticsView'
 import { MVPsView } from '@/components/MVPsView'
 import { MVPProfile } from '@/components/MVPProfile'
 import { MapView } from '@/components/MapView'
+import { AccessVerification } from '@/components/AccessVerification'
 import { Conference, Attendance } from '@/lib/types'
 import { Globe, ChartBar, Users, MapTrifold, CaretLeft, CaretRight, Trash } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
@@ -29,6 +30,7 @@ function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
   const [attendances, setAttendances] = useKV<Attendance[]>('attendances', [])
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
   const [hasSeeded, setHasSeeded] = useState(false)
   const [selectedMVP, setSelectedMVP] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null)
   const [currentView, setCurrentView] = useState<ViewMode>('conferences')
@@ -134,6 +136,15 @@ function App() {
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
+    )
+  }
+
+  if (!isVerified) {
+    return (
+      <AccessVerification 
+        username={currentUser.login} 
+        onVerified={() => setIsVerified(true)}
+      />
     )
   }
 
