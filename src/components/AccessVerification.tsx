@@ -22,20 +22,30 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
   } | null>(null)
 
   useEffect(() => {
+    let mounted = true
+    
     const verify = async () => {
-      setIsVerifying(true)
       const result = await verifyMVPAccess(username)
+      
+      if (!mounted) return
+      
       setVerificationResult(result)
       setIsVerifying(false)
       
       if (result.isVerified) {
         setTimeout(() => {
-          onVerified()
+          if (mounted) {
+            onVerified()
+          }
         }, 2000)
       }
     }
     
     verify()
+    
+    return () => {
+      mounted = false
+    }
   }, [username, onVerified])
 
   if (isVerifying) {

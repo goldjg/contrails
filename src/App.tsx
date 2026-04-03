@@ -30,7 +30,7 @@ function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
   const [attendances, setAttendances] = useKV<Attendance[]>('attendances', [])
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
-  const [isVerified, setIsVerified] = useState(false)
+  const [isVerified, setIsVerified] = useState<boolean | null>(null)
   const [hasSeeded, setHasSeeded] = useState(false)
   const [selectedMVP, setSelectedMVP] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null)
   const [currentView, setCurrentView] = useState<ViewMode>('conferences')
@@ -128,9 +128,19 @@ function App() {
     toast.success('All attendance data cleared')
   }
 
-  if (!currentUser) {
+  if (!currentUser || isVerified === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div 
+          className="fixed inset-0 -z-10 opacity-30"
+          style={{
+            backgroundImage: `
+              repeating-linear-gradient(0deg, transparent, transparent 2px, oklch(0.70 0.15 200 / 0.05) 2px, oklch(0.70 0.15 200 / 0.05) 4px),
+              repeating-linear-gradient(90deg, transparent, transparent 2px, oklch(0.70 0.15 200 / 0.05) 2px, oklch(0.70 0.15 200 / 0.05) 4px)
+            `,
+            backgroundSize: '50px 50px'
+          }}
+        />
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">Loading...</p>
