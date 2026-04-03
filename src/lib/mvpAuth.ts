@@ -2,117 +2,91 @@ export interface MVPProfile {
   displayName: string
   awardCategory: string
   activities: string[]
-e
+}
 
 export interface MVPVerificationResult {
   isVerified: boolean
-    const data =
- 
-
+  profile?: MVPProfile
+  error?: string
 }
-async f
-    const response = await fetch(url)
+
+async function fetchGitHubProfile(username: string): Promise<string> {
+  const url = `https://api.github.com/users/${username}`
+  const response = await fetch(url)
+  const data = await response.json()
+  return data.bio || ''
+}
+
+async function fetchMVPProfile(profileUrl: string): Promise<MVPProfile | null> {
+  try {
+    const response = await fetch(profileUrl)
+    const html = await response.text()
     
+    const displayNameMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/)
+    const displayName = displayNameMatch ? displayNameMatch[1].trim() : 'Unknown'
     
-    const displayName = displayNameMat
-    const awardCategoryMatc
+    const awardCategoryMatch = html.match(/Award Category[:\s]*([^<]+)/)
+    const awardCategory = awardCategoryMatch ? awardCategoryMatch[1].trim() : 'Unknown'
     
     const activities: string[] = []
-      activitie
-   
- 
-
-  } catch (error) {
-    ret
-}
-function extractMVPProfileUrl(tex
-  
-  return mvpUrlMatch ? mvpUrlMatch[0] 
-
-  const normalizedUsername = githubUsername.toLowerCase()
-  
-}
-export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
-    const githubBio = await fetchGitHubProfile(githubUsername)
-    
-      return {
-        error: 'No Microsoft MVP pr
-    }
-    const mvpProfile = await fe
+    const activityMatches = html.matchAll(/activity[^>]*>([^<]+)/gi)
+    for (const match of activityMatches) {
+      activities.push(match[1].trim())
     }
     
     return {
-    
-      return {
-        error: `
+      displayName,
+      awardCategory,
+      activities
     }
-    const hasMatchi
-    )
-    if (!hasMat
-   
+  } catch (error) {
+    return null
+  }
 }
 
-      isVerified: true
+function extractMVPProfileUrl(text: string): string | null {
+  const mvpUrlMatch = text.match(/https?:\/\/mvp\.microsoft\.com\/[^\s]+/)
+  return mvpUrlMatch ? mvpUrlMatch[0] : null
+}
+
+export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
+  try {
+    const githubBio = await fetchGitHubProfile(githubUsername)
+    
+    const mvpProfileUrl = extractMVPProfileUrl(githubBio)
+    if (!mvpProfileUrl) {
+      return {
+        isVerified: false,
+        error: 'No Microsoft MVP profile link found in GitHub bio'
+      }
+    }
+    
+    const mvpProfile = await fetchMVPProfile(mvpProfileUrl)
+    if (!mvpProfile) {
+      return {
+        isVerified: false,
+        error: 'Unable to verify MVP profile'
+      }
+    }
+    
+    const normalizedUsername = githubUsername.toLowerCase()
+    const hasMatchingUsername = mvpProfileUrl.toLowerCase().includes(normalizedUsername)
+    
+    if (!hasMatchingUsername) {
+      return {
+        isVerified: false,
+        error: 'MVP profile does not match GitHub username'
+      }
+    }
+    
+    return {
+      isVerified: true,
+      profile: mvpProfile
+    }
   } catch (error) {
-  
-      error: 'An unexpected error occurred during verification. Please try ag
+    return {
+      isVerified: false,
+      error: 'An unexpected error occurred during verification. Please try again.'
+    }
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}
