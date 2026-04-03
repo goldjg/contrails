@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useKV } from '@github/spark/hooks'
 import { ConferencesView } from '@/components/ConferencesView'
 import { AnalyticsView } from '@/components/AnalyticsView'
@@ -22,6 +22,9 @@ function App() {
   const [hasSeeded, setHasSeeded] = useState(false)
   const [selectedMVP, setSelectedMVP] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null)
   const [currentView, setCurrentView] = useState<ViewMode>('conferences')
+  const [showLeftFade, setShowLeftFade] = useState(false)
+  const [showRightFade, setShowRightFade] = useState(false)
+  const navRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -38,6 +41,25 @@ function App() {
       toast.success('Loaded 24 conferences for 2026!')
     }
   }, [currentUser, conferences, hasSeeded, setConferences])
+
+  useEffect(() => {
+    const checkScroll = () => {
+      if (navRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = navRef.current
+        setShowLeftFade(scrollLeft > 0)
+        setShowRightFade(scrollLeft < scrollWidth - clientWidth - 1)
+      }
+    }
+
+    checkScroll()
+    window.addEventListener('resize', checkScroll)
+    navRef.current?.addEventListener('scroll', checkScroll)
+
+    return () => {
+      window.removeEventListener('resize', checkScroll)
+      navRef.current?.removeEventListener('scroll', checkScroll)
+    }
+  }, [])
 
   const handleAddConference = (conference: Conference) => {
     setConferences((current) => [...(current || []), conference])
@@ -113,52 +135,69 @@ function App() {
             <h1 className="text-white font-bold text-3xl tracking-tight">ConTrails</h1>
           </div>
 
-          <nav className="flex items-center gap-2 overflow-x-auto pb-1 -mx-6 px-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30">
-            <Button
-              variant="ghost"
-              onClick={() => setCurrentView('conferences')}
+          <div className="relative">
+            <div
               className={cn(
-                "text-white hover:bg-white/10 flex-shrink-0",
-                currentView === 'conferences' && "bg-white/20"
+                "absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-primary/80 to-transparent pointer-events-none transition-opacity duration-300 z-10",
+                showLeftFade ? "opacity-100" : "opacity-0"
               )}
-            >
-              <Globe size={20} weight="bold" className="mr-2" />
-              Conferences
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setCurrentView('map')}
+            />
+            <div
               className={cn(
-                "text-white hover:bg-white/10 flex-shrink-0",
-                currentView === 'map' && "bg-white/20"
+                "absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-accent/80 to-transparent pointer-events-none transition-opacity duration-300 z-10",
+                showRightFade ? "opacity-100" : "opacity-0"
               )}
+            />
+            <nav 
+              ref={navRef}
+              className="flex items-center gap-2 overflow-x-auto pb-1 -mx-6 px-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30"
             >
-              <MapTrifold size={20} weight="bold" className="mr-2" />
-              Map
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setCurrentView('analytics')}
-              className={cn(
-                "text-white hover:bg-white/10 flex-shrink-0",
-                currentView === 'analytics' && "bg-white/20"
-              )}
-            >
-              <ChartBar size={20} weight="bold" className="mr-2" />
-              Analytics
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setCurrentView('mvps')}
-              className={cn(
-                "text-white hover:bg-white/10 flex-shrink-0",
-                currentView === 'mvps' && "bg-white/20"
-              )}
-            >
-              <Users size={20} weight="bold" className="mr-2" />
-              MVPs
-            </Button>
-          </nav>
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentView('conferences')}
+                className={cn(
+                  "text-white hover:bg-white/10 flex-shrink-0",
+                  currentView === 'conferences' && "bg-white/20"
+                )}
+              >
+                <Globe size={20} weight="bold" className="mr-2" />
+                Conferences
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentView('map')}
+                className={cn(
+                  "text-white hover:bg-white/10 flex-shrink-0",
+                  currentView === 'map' && "bg-white/20"
+                )}
+              >
+                <MapTrifold size={20} weight="bold" className="mr-2" />
+                Map
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentView('analytics')}
+                className={cn(
+                  "text-white hover:bg-white/10 flex-shrink-0",
+                  currentView === 'analytics' && "bg-white/20"
+                )}
+              >
+                <ChartBar size={20} weight="bold" className="mr-2" />
+                Analytics
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setCurrentView('mvps')}
+                className={cn(
+                  "text-white hover:bg-white/10 flex-shrink-0",
+                  currentView === 'mvps' && "bg-white/20"
+                )}
+              >
+                <Users size={20} weight="bold" className="mr-2" />
+                MVPs
+              </Button>
+            </nav>
+          </div>
         </div>
       </header>
 
