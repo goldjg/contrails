@@ -55,9 +55,9 @@ export function ConferenceCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 border-2 hover:-translate-y-1" 
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 border-2 hover:-translate-y-1 bg-gradient-to-br from-primary to-accent" 
             style={{ borderColor: isUserAttending ? 'oklch(0.70 0.15 200)' : undefined }}>
-        <div className="h-32 bg-gradient-to-br from-primary to-accent relative">
+        <div className="h-32 relative">
           <div className="absolute inset-0 bg-black/20" />
           <div className="absolute bottom-4 left-6 right-6">
             <h2 className="text-white font-semibold text-xl line-clamp-2 drop-shadow-md">
