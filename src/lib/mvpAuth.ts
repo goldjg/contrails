@@ -74,6 +74,8 @@ async function fetchGitHubProfile(username: string): Promise<GitHubUser> {
   }
 }
 
+const MVP_URL_PATTERN = /https?:\/\/mvp\.microsoft\.com\/[^\s"'<>]+/
+
 function extractMVPProfileUrl(userData: GitHubUser): string | null {
   console.log(`[MVP Auth] Searching for MVP profile URL in GitHub user data`)
   
@@ -88,7 +90,7 @@ function extractMVPProfileUrl(userData: GitHubUser): string | null {
   }
   
   for (const text of textsToSearch) {
-    const mvpUrlMatch = text.match(/https?:\/\/mvp\.microsoft\.com\/[^\s"'<>]+/)
+    const mvpUrlMatch = text.match(MVP_URL_PATTERN)
     if (mvpUrlMatch) {
       console.log(`[MVP Auth] Found MVP profile URL: ${mvpUrlMatch[0]}`)
       return mvpUrlMatch[0]
@@ -98,6 +100,46 @@ function extractMVPProfileUrl(userData: GitHubUser): string | null {
   console.log(`[MVP Auth] No MVP profile URL found in GitHub user data`)
   console.log(`[MVP Auth] Searched in:`, textsToSearch)
   
+  return null
+}
+
+async function extractMVPProfileUrlFromGitHubPage(githubUsername: string): Promise<string | null> {
+  // The GitHub profile HTML page renders social/website links as:
+  //   <li><a href="https://mvp.microsoft.com/...">...</a></li>
+  // These links may not appear in the API response's bio/blog/social_accounts fields,
+  // so we fall back to parsing the HTML page directly.
+  console.log(`[MVP Auth] Falling back to HTML scrape of github.com/${githubUsername}`)
+  try {
+    const response = await fetch(`https://github.com/${githubUsername}`, {
+      headers: { Accept: 'text/html,application/xhtml+xml' }
+    })
+    if (!response.ok) {
+      console.log(`[MVP Auth] GitHub HTML page returned HTTP ${response.status}`)
+      return null
+    }
+    const html = await response.text()
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(html, 'text/html')
+
+    // Scan all anchor hrefs in the document
+    for (const a of Array.from(doc.querySelectorAll('a[href]'))) {
+      const href = a.getAttribute('href') ?? ''
+      const m = href.match(MVP_URL_PATTERN)
+      if (m) {
+        console.log(`[MVP Auth] Found MVP profile URL via GitHub HTML page: ${m[0]}`)
+        return m[0]
+      }
+    }
+
+    // Raw-text fallback (catches URLs in data attributes or script blocks)
+    const m = html.match(MVP_URL_PATTERN)
+    if (m) {
+      console.log(`[MVP Auth] Found MVP profile URL via GitHub HTML regex: ${m[0]}`)
+      return m[0]
+    }
+  } catch (err) {
+    console.log(`[MVP Auth] GitHub HTML page fetch failed:`, err)
+  }
   return null
 }
 
@@ -316,7 +358,13 @@ export async function verifyMVPAccess(
     console.log(`[MVP Auth] Step 2: Extracting MVP profile URL from GitHub profile...`)
     onProgress?.('extracting-mvp-url', 'Searching for MVP profile URL on GitHub')
     
-    const mvpProfileUrl = extractMVPProfileUrl(githubUserData)
+    let mvpProfileUrl = extractMVPProfileUrl(githubUserData)
+    if (!mvpProfileUrl) {
+      // API fields (bio, blog, social_accounts) didn't contain the MVP URL.
+      // Fall back to parsing the rendered GitHub profile HTML page, which shows
+      // social/website links as <li><a href="https://mvp.microsoft.com/...">
+      mvpProfileUrl = await extractMVPProfileUrlFromGitHubPage(githubUsername)
+    }
     if (mvpProfileUrl) {
       checks.hasMVPUrlOnGitHub = true
       detectedMVPUrl = mvpProfileUrl
