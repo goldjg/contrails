@@ -21,6 +21,16 @@ export interface MVPVerificationResult {
   displayName?: string
 }
 
+export type VerificationStep = 
+  | 'fetching-github'
+  | 'extracting-mvp-url'
+  | 'fetching-mvp-profile'
+  | 'validating-category'
+  | 'checking-github-link'
+  | 'complete'
+
+export type ProgressCallback = (step: VerificationStep, message: string) => void
+
 interface GitHubUser {
   bio: string | null
   blog: string | null
@@ -191,7 +201,10 @@ If you cannot access the URL or encounter errors, return:
   }
 }
 
-export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
+export async function verifyMVPAccess(
+  githubUsername: string,
+  onProgress?: ProgressCallback
+): Promise<MVPVerificationResult> {
   console.log(`[MVP Auth] ========== Starting verification for user: ${githubUsername} ==========`)
   
   const checks: VerificationChecks = {
@@ -206,11 +219,14 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
   
   try {
     console.log(`[MVP Auth] Step 1: Fetching GitHub user data...`)
+    onProgress?.('fetching-github', `Fetching GitHub profile for @${githubUsername}`)
+    
     let githubUserData: GitHubUser
     try {
       githubUserData = await fetchGitHubProfile(githubUsername)
     } catch (error) {
       console.error(`[MVP Auth] FATAL: Cannot fetch GitHub user data`)
+      onProgress?.('complete', 'Verification failed')
       return {
         isVerified: false,
         error: 'Unable to fetch GitHub profile data. Please try again later.',
@@ -219,6 +235,8 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
     }
     
     console.log(`[MVP Auth] Step 2: Extracting MVP profile URL from GitHub profile...`)
+    onProgress?.('extracting-mvp-url', 'Searching for MVP profile URL on GitHub')
+    
     const mvpProfileUrl = extractMVPProfileUrl(githubUserData)
     if (mvpProfileUrl) {
       checks.hasMVPUrlOnGitHub = true
@@ -226,11 +244,15 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
       console.log(`[MVP Auth] ✓ Check 1 PASSED: MVP URL found on GitHub profile`)
       
       console.log(`[MVP Auth] Step 3: Fetching MVP profile via LLM proxy...`)
+      onProgress?.('fetching-mvp-profile', 'Analyzing MVP profile page (this may take 10-15 seconds)')
+      
       const mvpData = await fetchMVPProfileViaProxy(mvpProfileUrl, githubUsername)
       
       if (mvpData.isValid) {
         checks.hasValidMVPProfile = true
         console.log(`[MVP Auth] ✓ Check 2 PASSED: MVP profile is valid and accessible`)
+        
+        onProgress?.('validating-category', 'Validating Security MVP status')
         
         if (mvpData.isSecurityMVP) {
           checks.isSecurityMVP = true
@@ -238,6 +260,8 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
         } else {
           console.log(`[MVP Auth] ✗ Check 3 FAILED: Award Category is "${mvpData.awardCategory}", not Security`)
         }
+        
+        onProgress?.('checking-github-link', 'Verifying GitHub profile link')
         
         if (mvpData.hasGitHubLink) {
           checks.hasGitHubOnMVPProfile = true
@@ -250,6 +274,8 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
             detectedGitHubLinks = mvpData.detectedGitHubLinks
           }
         }
+        
+        onProgress?.('complete', 'Verification complete')
         
         const allChecksPassed = checks.hasMVPUrlOnGitHub && 
                                checks.hasValidMVPProfile && 
@@ -288,9 +314,11 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
         }
       } else {
         console.log(`[MVP Auth] ✗ Check 2 FAILED: MVP profile could not be verified`)
+        onProgress?.('complete', 'Verification failed')
       }
     } else {
       console.log(`[MVP Auth] ✗ Check 1 FAILED: No MVP URL found on GitHub profile`)
+      onProgress?.('complete', 'Verification failed')
     }
     
     console.log(`[MVP Auth] ========== Verification Summary ==========`)
@@ -310,6 +338,7 @@ export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerifi
     }
   } catch (error) {
     console.error(`[MVP Auth] ✗ UNEXPECTED ERROR during verification:`, error)
+    onProgress?.('complete', 'Verification error')
     return {
       isVerified: false,
       error: 'An unexpected error occurred during verification. Please try again.',

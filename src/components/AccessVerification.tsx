@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { verifyMVPAccess, VerificationChecks } from '@/lib/mvpAuth'
-import { Shield, CheckCircle, XCircle, Link as LinkIcon } from '@phosphor-icons/react'
+import { verifyMVPAccess, VerificationChecks, VerificationStep } from '@/lib/mvpAuth'
+import { Shield, CheckCircle, XCircle, Link as LinkIcon, Clock, Sparkle } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 
 interface AccessVerificationProps {
   username: string
@@ -11,6 +12,9 @@ interface AccessVerificationProps {
 
 export function AccessVerification({ username, onVerified }: AccessVerificationProps) {
   const [isVerifying, setIsVerifying] = useState(true)
+  const [currentStep, setCurrentStep] = useState<VerificationStep>('fetching-github')
+  const [currentMessage, setCurrentMessage] = useState('Starting verification...')
+  const [progress, setProgress] = useState(0)
   const [verificationResult, setVerificationResult] = useState<{
     isVerified: boolean
     mvpProfileUrl?: string
@@ -25,7 +29,21 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
     let mounted = true
     
     const verify = async () => {
-      const result = await verifyMVPAccess(username)
+      const result = await verifyMVPAccess(username, (step, message) => {
+        if (!mounted) return
+        setCurrentStep(step)
+        setCurrentMessage(message)
+        
+        const stepProgress = {
+          'fetching-github': 20,
+          'extracting-mvp-url': 35,
+          'fetching-mvp-profile': 50,
+          'validating-category': 75,
+          'checking-github-link': 90,
+          'complete': 100
+        }
+        setProgress(stepProgress[step] || 0)
+      })
       
       if (!mounted) return
       
@@ -49,6 +67,41 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
   }, [username, onVerified])
 
   if (isVerifying) {
+    const stepDetails = {
+      'fetching-github': {
+        icon: '🔍',
+        title: 'Fetching GitHub Profile',
+        description: `Loading profile data for @${username}`
+      },
+      'extracting-mvp-url': {
+        icon: '🔗',
+        title: 'Looking for MVP Profile',
+        description: 'Searching for Microsoft MVP profile URL'
+      },
+      'fetching-mvp-profile': {
+        icon: '✨',
+        title: 'Analyzing MVP Profile',
+        description: 'This step uses AI to read your MVP profile and may take 10-15 seconds'
+      },
+      'validating-category': {
+        icon: '🛡️',
+        title: 'Checking Award Category',
+        description: 'Verifying Security MVP status'
+      },
+      'checking-github-link': {
+        icon: '✅',
+        title: 'Validating Cross-Links',
+        description: 'Ensuring GitHub profile is linked on MVP profile'
+      },
+      'complete': {
+        icon: '🎉',
+        title: 'Complete',
+        description: 'Verification finished'
+      }
+    }
+
+    const currentStepDetail = stepDetails[currentStep]
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div 
@@ -69,25 +122,62 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
             <CardTitle>Verifying MVP Access</CardTitle>
             <CardDescription>Checking your Microsoft Security MVP credentials...</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <div className="mt-1">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                </div>
-                <p>Fetching GitHub profile for <span className="font-mono text-foreground">@{username}</span></p>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-foreground">Progress</span>
+                <span className="text-muted-foreground">{progress}%</span>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="mt-1">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+              <Progress value={progress} className="h-2" />
+            </div>
+
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl flex-shrink-0 animate-bounce">
+                  {currentStepDetail.icon}
                 </div>
-                <p>Looking for MVP profile URL on GitHub profile</p>
+                <div className="flex-1 space-y-1">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    {currentStepDetail.title}
+                    {currentStep === 'fetching-mvp-profile' && (
+                      <Sparkle size={16} className="text-primary animate-pulse" weight="fill" />
+                    )}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {currentMessage}
+                  </p>
+                  {currentStep === 'fetching-mvp-profile' && (
+                    <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                      <Clock size={16} className="text-amber-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      <p className="text-xs text-amber-800">
+                        <strong>Please wait:</strong> {currentStepDetail.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="mt-1">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                </div>
-                <p>Verifying bidirectional profile links</p>
+            </div>
+
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${progress >= 20 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={progress >= 20 ? 'text-foreground font-medium' : ''}>GitHub profile lookup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${progress >= 35 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={progress >= 35 ? 'text-foreground font-medium' : ''}>MVP URL extraction</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${progress >= 50 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={progress >= 50 ? 'text-foreground font-medium' : ''}>MVP profile analysis (AI)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${progress >= 75 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={progress >= 75 ? 'text-foreground font-medium' : ''}>Security category check</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${progress >= 90 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={progress >= 90 ? 'text-foreground font-medium' : ''}>Bidirectional link validation</span>
               </div>
             </div>
           </CardContent>
