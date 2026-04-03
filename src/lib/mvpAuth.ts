@@ -1,20 +1,14 @@
 export interface MVPProfile {
-  activities: string[
+  displayName: string
   activities: string[]
   awardCategory: string
- 
+}
 
-    return data.bio || null
-    con
-  }
-
-  tr
-    if (!response.ok) return null
-    const html = await resp
-    const displayNa
-    
-    const activ
-  }
+export interface VerificationResult {
+  isVerified: boolean
+  error?: string
+  mvpProfileUrl?: string
+  displayName?: string
 }
 
 async function fetchMVPProfile(mvpProfileUrl: string): Promise<MVPProfile | null> {
@@ -23,7 +17,7 @@ async function fetchMVPProfile(mvpProfileUrl: string): Promise<MVPProfile | null
     if (!response.ok) return null
     
     const html = await response.text()
-func
+    
     const displayNameMatch = html.match(/<h1[^>]*class="[^"]*c-subheading[^"]*"[^>]*>([^<]+)<\/h1>/i)
     const displayName = displayNameMatch ? displayNameMatch[1].trim() : 'MVP'
     
@@ -41,71 +35,39 @@ func
       displayName,
       activities,
       awardCategory
-    i
-
-    const mvpProfile = await fetchMVPProfile(mvpProfile
-    if (!mvpPro
-   
- 
-
-      return {
-        error: `Your MVP Award Category is "${mvpProfile.
-  
-    const hasGitHubLink = isGitHubUrlM
-    if (!hasGitHubLink) {
-        isVerified: false,
-      }
-
- 
-
+    }
   } catch (error) {
-    return {
- 
+    console.error('Error fetching MVP profile:', error)
+    return null
+  }
+}
 
+function isGitHubUrlMatch(url: string, githubUsername: string): boolean {
+  const normalizedUrl = url.toLowerCase()
+  const normalizedUsername = githubUsername.toLowerCase()
+  return normalizedUrl.includes(`github.com/${normalizedUsername}`)
+}
 
+export async function verifyMVPAccess(githubUsername: string): Promise<VerificationResult> {
+  try {
+    const mvpProfileUrl = `https://mvp.microsoft.com/en-us/PublicProfile/${githubUsername}`
+    
+    const mvpProfile = await fetchMVPProfile(mvpProfileUrl)
+    if (!mvpProfile) {
+      return {
+        isVerified: false,
+        error: 'No Microsoft MVP profile found. Please ensure you have a public MVP profile at ' + mvpProfileUrl
+      }
+    }
 
+    if (!mvpProfile.awardCategory.toLowerCase().includes('security')) {
+      return {
+        isVerified: false,
+        error: `Your MVP Award Category is "${mvpProfile.awardCategory}". This app is restricted to Security MVPs only.`
+      }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    const hasGitHubLink = mvpProfile.activities.some(url => isGitHubUrlMatch(url, githubUsername))
     if (!hasGitHubLink) {
       return {
         isVerified: false,
@@ -125,4 +87,4 @@ func
       error: 'An unexpected error occurred during verification. Please try again later.'
     }
   }
-
+}
