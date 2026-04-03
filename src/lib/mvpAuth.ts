@@ -184,14 +184,13 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
   }
   if (!awardCategory) {
     // Look for the text "Award Category" followed closely by a value in the DOM.
-    // Limit to elements likely to be labels (span, dt, p, div, td, th, li).
-    const labelEls = doc.querySelectorAll('span, dt, p, div, td, th, li, label')
+    // Exclude div to avoid matching large containers; use leaf elements only.
+    const labelEls = doc.querySelectorAll('span, dt, p, td, th, li, label')
     labelEls.forEach(el => {
       if (awardCategory) return
-      // Only inspect leaf-like nodes so we don't match huge containers
-      const text = el.childNodes.length === 1 && el.childNodes[0].nodeType === Node.TEXT_NODE
-        ? el.textContent?.trim() ?? ''
-        : ''
+      // True leaf: no child elements (may still have text nodes)
+      if (el.children.length !== 0) return
+      const text = el.textContent?.trim() ?? ''
       if (/^award\s+category$/i.test(text)) {
         const next = el.nextElementSibling ?? el.parentElement?.nextElementSibling
         const val = next?.textContent?.trim()
@@ -215,8 +214,10 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
   const githubLinksArr = [...githubLinks]
   // Match only when the username is immediately followed by '/', end-of-string,
   // or a query/fragment character – prevents 'test' matching 'testing'.
+  // GitHub usernames only contain [a-zA-Z0-9-], none of which are regex special
+  // characters, so no escaping is needed.
   const usernameSegmentRe = new RegExp(
-    `github\\.com/${githubUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/|$|[?#])`,
+    `github\\.com/${githubUsername}(?:/|$|[?#])`,
     'i'
   )
   const hasGitHubLink = githubLinksArr.some(link => usernameSegmentRe.test(link))
@@ -281,7 +282,7 @@ export async function verifyMVPAccess(
       detectedMVPUrl = mvpProfileUrl
       console.log(`[MVP Auth] ✓ Check 1 PASSED: MVP URL found on GitHub profile`)
       
-      console.log(`[MVP Auth] Step 3: Fetching MVP profile via LLM proxy...`)
+      console.log(`[MVP Auth] Step 3: Fetching MVP profile page...`)
       onProgress?.('fetching-mvp-profile', 'Reading MVP profile page')
       
       const mvpData = await fetchMVPProfile(mvpProfileUrl, githubUsername)
