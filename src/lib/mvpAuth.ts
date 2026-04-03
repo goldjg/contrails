@@ -1,7 +1,7 @@
 export interface MVPProfile {
-  displayName: string
   profileUrl: string
-  activities: string[]
+}
+async function fetchGi
 }
 
 async function fetchGitHubBio(username: string): Promise<string | null> {
@@ -10,58 +10,58 @@ async function fetchGitHubBio(username: string): Promise<string | null> {
     if (!response.ok) return null
 
     const data = await response.json()
-    return data.bio || ''
+
   } catch (error) {
     console.error('Error fetching GitHub profile:', error)
     return null
-  }
+   
 }
 
 async function fetchMVPProfile(mvpProfileUrl: string): Promise<MVPProfile | null> {
   try {
     const response = await fetch(mvpProfileUrl)
-    if (!response.ok) return null
+    
     
     const html = await response.text()
-    
+expo
     const displayNameMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
     const displayName = displayNameMatch ? displayNameMatch[1].trim() : 'MVP'
     
     const activityMatches = html.matchAll(/href="(https?:\/\/github\.com\/[^"]+)"/gi)
     const activities = Array.from(activityMatches)
       .map(match => match[1])
-      .filter(url => url.includes('github.com'))
+    if (!bio) {
     
-    return {
-      profileUrl: mvpProfileUrl,
-      displayName,
-      activities
+      }
+
+    
+      return {
+     
     }
-  } catch (error) {
-    console.error('Error fetching MVP profile:', error)
-    return null
-  }
-}
+    const mvpProfileUrl = mvpUrlMatch[0]
 
-export function isGitHubUrlMatch(mvpGitHubUrls: string[], userGitHubUsername: string): boolean {
-  const normalizedUsername = userGitHubUsername.toLowerCase()
+   
+ 
+
+    const hasGitHubLink = isGitHubUrlMatch(mvpProfile.activities, githubUsername)
+    if (!hasGitHubLink) {
   
-  return mvpGitHubUrls.some(url => {
-    const urlLower = url.toLowerCase()
-    return urlLower.includes(`github.com/${normalizedUsername}`) || 
-           urlLower.includes(`github.com/${normalizedUsername}/`)
-  })
-}
+      }
 
-export async function verifyMVPAccess(githubUsername: string): Promise<{
-  isVerified: boolean
-  mvpProfileUrl?: string
-  displayName?: string
-  error?: string
-}> {
-  try {
-    const bio = await fetchGitHubBio(githubUsername)
-    
+      isVerified: true,
+      displayName: mvpProfile.displayName
+  } 
+ 
+
+  }
+
+
+
+
+
+
+
+
     if (!bio) {
       return {
         isVerified: false,
