@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { verifyMVPAccess } from '@/lib/mvpAuth'
+import { verifyMVPAccess, VerificationChecks } from '@/lib/mvpAuth'
 import { Shield, CheckCircle, XCircle, Link as LinkIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,7 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
     error?: string
     detectedMVPUrl?: string
     detectedGitHubLinks?: string[]
+    checks?: VerificationChecks
   } | null>(null)
 
   useEffect(() => {
@@ -86,6 +87,8 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
   }
 
   if (!verificationResult?.isVerified) {
+    const checks = verificationResult?.checks
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div 
@@ -109,14 +112,92 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-              <p className="text-sm text-destructive font-medium">
-                {verificationResult?.error}
-              </p>
-            </div>
+            {checks && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Verification Status:</h3>
+                
+                <div className="space-y-3">
+                  <div className={`flex items-start gap-3 text-sm p-3 rounded-lg border ${checks.hasMVPUrlOnGitHub ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    {checks.hasMVPUrlOnGitHub ? (
+                      <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" weight="bold" />
+                    ) : (
+                      <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" weight="bold" />
+                    )}
+                    <div>
+                      <p className={`font-medium ${checks.hasMVPUrlOnGitHub ? 'text-green-900' : 'text-red-900'}`}>
+                        {checks.hasMVPUrlOnGitHub ? '✓ MVP profile URL found on GitHub' : '✗ MVP profile URL not found on GitHub'}
+                      </p>
+                      {!checks.hasMVPUrlOnGitHub && (
+                        <p className="text-red-700 mt-1 text-xs">
+                          Add your Microsoft MVP profile URL to your GitHub profile page (bio, README, or social links)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`flex items-start gap-3 text-sm p-3 rounded-lg border ${checks.hasValidMVPProfile ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    {checks.hasValidMVPProfile ? (
+                      <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" weight="bold" />
+                    ) : (
+                      <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" weight="bold" />
+                    )}
+                    <div>
+                      <p className={`font-medium ${checks.hasValidMVPProfile ? 'text-green-900' : 'text-red-900'}`}>
+                        {checks.hasValidMVPProfile ? '✓ MVP profile is accessible' : '✗ MVP profile could not be accessed'}
+                      </p>
+                      {!checks.hasValidMVPProfile && checks.hasMVPUrlOnGitHub && (
+                        <p className="text-red-700 mt-1 text-xs">
+                          The MVP profile URL found may be invalid or inaccessible
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {checks.hasValidMVPProfile && (
+                    <div className={`flex items-start gap-3 text-sm p-3 rounded-lg border ${checks.isSecurityMVP ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      {checks.isSecurityMVP ? (
+                        <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      ) : (
+                        <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      )}
+                      <div>
+                        <p className={`font-medium ${checks.isSecurityMVP ? 'text-green-900' : 'text-red-900'}`}>
+                          {checks.isSecurityMVP ? '✓ Award Category is Security' : '✗ Award Category is not Security'}
+                        </p>
+                        {!checks.isSecurityMVP && (
+                          <p className="text-red-700 mt-1 text-xs">
+                            ConTrails is only available to Security MVPs
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {checks.hasValidMVPProfile && (
+                    <div className={`flex items-start gap-3 text-sm p-3 rounded-lg border ${checks.hasGitHubOnMVPProfile ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      {checks.hasGitHubOnMVPProfile ? (
+                        <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      ) : (
+                        <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" weight="bold" />
+                      )}
+                      <div>
+                        <p className={`font-medium ${checks.hasGitHubOnMVPProfile ? 'text-green-900' : 'text-red-900'}`}>
+                          {checks.hasGitHubOnMVPProfile ? '✓ GitHub profile found on MVP profile' : '✗ GitHub profile not found on MVP profile'}
+                        </p>
+                        {!checks.hasGitHubOnMVPProfile && (
+                          <p className="text-red-700 mt-1 text-xs">
+                            Add https://github.com/{username} to your MVP profile activities or social links
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {(verificationResult?.detectedMVPUrl || verificationResult?.detectedGitHubLinks) && (
-              <div className="space-y-4">
+              <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-semibold text-sm">Detected Profile Information:</h3>
                 
                 {verificationResult?.detectedMVPUrl && (
@@ -165,34 +246,20 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
               </div>
             )}
 
-            <div className="space-y-4">
-              <h3 className="font-semibold text-sm">To gain access, you need:</h3>
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-semibold text-sm">Quick Links:</h3>
               
               <div className="space-y-3">
                 <div className="flex items-start gap-3 text-sm">
-                  <Shield size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
-                  <div>
-                    <p className="font-medium mb-1">Be a Microsoft Security MVP</p>
-                    <p className="text-muted-foreground">
-                      Your Award Category on your MVP profile must be "Security"
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 text-sm">
                   <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
                   <div>
-                    <p className="font-medium mb-1">Add your MVP profile URL to your GitHub profile</p>
-                    <p className="text-muted-foreground mb-2">
-                      Go to your GitHub profile and add your Microsoft MVP profile URL anywhere on your profile page (bio, README, pinned items, etc.). Example format: https://mvp.microsoft.com/en-US/mvp/profile/YOUR-ID
-                    </p>
+                    <p className="font-medium mb-1">Your GitHub Profile</p>
                     <a 
                       href={`https://github.com/${username}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
                     >
-                      <LinkIcon size={16} weight="bold" />
                       https://github.com/{username}
                     </a>
                   </div>
@@ -201,10 +268,15 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                 <div className="flex items-start gap-3 text-sm">
                   <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
                   <div>
-                    <p className="font-medium mb-1">Add your GitHub profile to your MVP profile</p>
-                    <p className="text-muted-foreground">
-                      Ensure your <a href="https://mvp.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Microsoft MVP profile</a> lists your GitHub profile URL (https://github.com/{username}) in your activities or social links
-                    </p>
+                    <p className="font-medium mb-1">Microsoft MVP Portal</p>
+                    <a 
+                      href="https://mvp.microsoft.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      https://mvp.microsoft.com
+                    </a>
                   </div>
                 </div>
               </div>

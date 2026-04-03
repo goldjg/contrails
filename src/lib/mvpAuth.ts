@@ -4,12 +4,20 @@ export interface MVPProfile {
   activities: string[]
 }
 
+export interface VerificationChecks {
+  hasMVPUrlOnGitHub: boolean
+  hasValidMVPProfile: boolean
+  isSecurityMVP: boolean
+  hasGitHubOnMVPProfile: boolean
+}
+
 export interface MVPVerificationResult {
   isVerified: boolean
   profile?: MVPProfile
   error?: string
   detectedMVPUrl?: string
   detectedGitHubLinks?: string[]
+  checks?: VerificationChecks
 }
 
 interface GitHubUserResponse {
@@ -80,61 +88,89 @@ function extractMVPProfileUrl(text: string): string | null {
 }
 
 export async function verifyMVPAccess(githubUsername: string): Promise<MVPVerificationResult> {
+  const checks: VerificationChecks = {
+    hasMVPUrlOnGitHub: false,
+    hasValidMVPProfile: false,
+    isSecurityMVP: false,
+    hasGitHubOnMVPProfile: false
+  }
+  
+  let detectedMVPUrl: string | undefined
+  let detectedGitHubLinks: string[] = []
+  let mvpProfile: MVPProfile | undefined
+  
   try {
     const githubProfileHtml = await fetchGitHubProfile(githubUsername)
     
     const mvpProfileUrl = extractMVPProfileUrl(githubProfileHtml)
-    if (!mvpProfileUrl) {
-      return {
-        isVerified: false,
-        error: 'No Microsoft MVP profile link found in GitHub profile'
+    if (mvpProfileUrl) {
+      checks.hasMVPUrlOnGitHub = true
+      detectedMVPUrl = mvpProfileUrl
+    }
+    
+    if (mvpProfileUrl) {
+      const mvpData = await fetchMVPProfile(mvpProfileUrl)
+      if (mvpData) {
+        checks.hasValidMVPProfile = true
+        mvpProfile = mvpData.profile
+        detectedGitHubLinks = mvpData.githubLinks
+        
+        if (mvpData.profile.awardCategory === 'Security') {
+          checks.isSecurityMVP = true
+        }
+        
+        const normalizedUsername = githubUsername.toLowerCase()
+        const hasMatchingGitHubLink = mvpData.githubLinks.some((link: string) => 
+          link.toLowerCase().includes('github.com/' + normalizedUsername)
+        )
+        if (hasMatchingGitHubLink) {
+          checks.hasGitHubOnMVPProfile = true
+        }
       }
     }
     
-    const mvpData = await fetchMVPProfile(mvpProfileUrl)
-    if (!mvpData) {
-      return {
-        isVerified: false,
-        error: 'Unable to verify MVP profile',
-        detectedMVPUrl: mvpProfileUrl
+    const isVerified = checks.hasMVPUrlOnGitHub && 
+                      checks.hasValidMVPProfile && 
+                      checks.isSecurityMVP && 
+                      checks.hasGitHubOnMVPProfile
+    
+    if (!isVerified) {
+      let errorMessages: string[] = []
+      
+      if (!checks.hasMVPUrlOnGitHub) {
+        errorMessages.push('No Microsoft MVP profile link found on your GitHub profile')
       }
-    }
-    
-    const { profile: mvpProfile, githubLinks } = mvpData
-    
-    if (mvpProfile.awardCategory !== 'Security') {
-      return {
-        isVerified: false,
-        error: 'MVP Award Category must be Security',
-        detectedMVPUrl: mvpProfileUrl,
-        detectedGitHubLinks: githubLinks
+      if (!checks.hasValidMVPProfile) {
+        errorMessages.push('Unable to access or validate your MVP profile')
       }
-    }
-    
-    const normalizedUsername = githubUsername.toLowerCase()
-    const hasMatchingGitHubLink = githubLinks.some((link: string) => 
-      link.toLowerCase().includes('github.com/' + normalizedUsername)
-    )
-    
-    if (!hasMatchingGitHubLink) {
+      if (checks.hasValidMVPProfile && !checks.isSecurityMVP) {
+        errorMessages.push('Your MVP Award Category must be "Security"')
+      }
+      if (checks.hasValidMVPProfile && !checks.hasGitHubOnMVPProfile) {
+        errorMessages.push('Your GitHub profile URL was not found on your MVP profile')
+      }
+      
       return {
         isVerified: false,
-        error: 'GitHub username not found in MVP profile',
-        detectedMVPUrl: mvpProfileUrl,
-        detectedGitHubLinks: githubLinks
+        error: errorMessages.join('. '),
+        detectedMVPUrl,
+        detectedGitHubLinks,
+        checks
       }
     }
     
     return {
       isVerified: true,
       profile: mvpProfile,
-      detectedMVPUrl: mvpProfileUrl,
-      detectedGitHubLinks: githubLinks
+      detectedMVPUrl,
+      detectedGitHubLinks,
+      checks
     }
   } catch (error) {
     return {
       isVerified: false,
-      error: 'An unexpected error occurred during verification. Please try again.'
+      error: 'An unexpected error occurred during verification. Please try again.',
+      checks
     }
   }
 }
