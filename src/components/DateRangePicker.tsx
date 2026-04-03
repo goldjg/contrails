@@ -1,33 +1,30 @@
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
-import { format } from 'date-fns'
-interface DateRangePickerProps {
-  onDateRangeChange: (range: Dat
-
-  const handleSelect = (range: DateRange | undefi
+import { CalendarBlank } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
+import { DateRange } from 'react-day-picker'
 
 interface DateRangePickerProps {
+  dateRange?: DateRange
   onDateRangeChange: (range: DateRange | undefined) => void
 }
 
+export function DateRangePicker({ dateRange, onDateRangeChange }: DateRangePickerProps) {
+  const handleSelect = (range: DateRange | undefined) => {
+    onDateRangeChange(range)
   }
-  return (
 
-          variant="outline"
-            'justify-st
-          )}
-   
-
-      <PopoverContent className="
-          mode="range"
-          onSelect={handleSelect
-     
-    </Popover>
-}
-
-
-
+  const formatDateRange = () => {
+    if (!dateRange?.from) {
+      return 'Pick a date range'
+    }
+    if (dateRange.to) {
+      return `${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`
+    }
+    return format(dateRange.from, 'MMM d, yyyy')
+  }
 
   return (
     <Popover>
@@ -54,5 +51,3 @@ interface DateRangePickerProps {
     </Popover>
   )
 }
-
-
