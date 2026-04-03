@@ -135,9 +135,19 @@ If you cannot access the URL or encounter errors, return:
     const response = await window.spark.llm(promptText, "gpt-4o", true)
     console.log(`[MVP Auth] LLM proxy response received:`, response)
     
-    const parsedResponse = JSON.parse(response)
+    // Strip markdown code fences that LLMs commonly wrap around JSON responses
+    const cleanedResponse = response.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
     
-    if (parsedResponse.error) {
+    const parsedResponse = JSON.parse(cleanedResponse)
+    
+    // Check for meaningful error content - LLMs sometimes return "None", "No error", "N/A" etc.
+    // instead of an empty string, so a simple truthy check causes false negatives
+    const hasError = parsedResponse.error && 
+      typeof parsedResponse.error === 'string' && 
+      parsedResponse.error.trim() !== '' &&
+      !/^(none|no error|no errors|n\/a|null|false|no|0)$/i.test(parsedResponse.error.trim())
+    
+    if (hasError) {
       console.log(`[MVP Auth] LLM proxy returned error:`, parsedResponse.error)
       return {
         isValid: false,
