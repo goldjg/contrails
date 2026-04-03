@@ -101,6 +101,30 @@ export function StatisticsSection({ conferences, attendances }: StatisticsSectio
     return null
   }
 
+  if (attendances.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <ChartBar size={28} weight="bold" className="text-primary" />
+          <h2 className="text-2xl font-bold">Conference Statistics & Trends</h2>
+        </div>
+
+        <Card className="p-12 text-center border-2 border-dashed">
+          <Users className="mx-auto mb-4 text-muted-foreground" size={64} weight="duotone" />
+          <h3 className="text-xl font-semibold mb-2">No Attendance Data Yet</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Statistics will appear once MVPs start marking their conference attendance. Visit the Conferences tab to register for upcoming events.
+          </p>
+        </Card>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

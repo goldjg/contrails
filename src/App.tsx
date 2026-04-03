@@ -6,12 +6,22 @@ import { MVPsView } from '@/components/MVPsView'
 import { MVPProfile } from '@/components/MVPProfile'
 import { MapView } from '@/components/MapView'
 import { Conference, Attendance } from '@/lib/types'
-import { Globe, ChartBar, Users, MapTrifold, CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { Globe, ChartBar, Users, MapTrifold, CaretLeft, CaretRight, Trash } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { seedConferences2026 } from '@/lib/seedData'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type ViewMode = 'conferences' | 'analytics' | 'mvps' | 'map'
 
@@ -26,6 +36,7 @@ function App() {
   const [showRightFade, setShowRightFade] = useState(false)
   const [showLeftArrow, setShowLeftArrow] = useState(false)
   const [showRightArrow, setShowRightArrow] = useState(false)
+  const [showClearDialog, setShowClearDialog] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -107,6 +118,12 @@ function App() {
         behavior: 'smooth'
       })
     }
+  }
+
+  const handleClearAllData = () => {
+    setAttendances([])
+    setShowClearDialog(false)
+    toast.success('All attendance data cleared')
   }
 
   if (!currentUser) {
@@ -234,6 +251,17 @@ function App() {
                 <Users size={20} weight="bold" className="mr-2" />
                 MVPs
               </Button>
+              {currentUser.isOwner && attendances && attendances.length > 0 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowClearDialog(true)}
+                  className="text-white hover:bg-destructive/80 flex-shrink-0"
+                  title="Clear all attendance data"
+                >
+                  <Trash size={20} weight="bold" className="mr-2" />
+                  Clear Data
+                </Button>
+              )}
             </nav>
           </div>
         </div>
@@ -275,6 +303,27 @@ function App() {
       </main>
 
       <Toaster />
+
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear All Attendance Data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all MVP attendance records. This action cannot be undone.
+              Conference data will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAllData}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Clear All Data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
