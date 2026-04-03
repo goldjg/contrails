@@ -118,6 +118,16 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
               
               <div className="space-y-3">
                 <div className="flex items-start gap-3 text-sm">
+                  <Shield size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
+                  <div>
+                    <p className="font-medium mb-1">Be a Microsoft Security MVP</p>
+                    <p className="text-muted-foreground">
+                      Your Award Category on your MVP profile must be "Security"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 text-sm">
                   <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
                   <div>
                     <p className="font-medium mb-1">Add your MVP profile URL to your GitHub bio</p>
