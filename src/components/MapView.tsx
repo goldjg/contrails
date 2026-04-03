@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
 import { Conference, Attendance } from '@/lib/types'
-import { MapPin, Users } from '@phosphor-icons/react'
+import { MapPin, Users, Plus, Minus, ArrowsOutSimple } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { format, parseISO } from 'date-fns'
 import * as d3 from 'd3'
 import { feature } from 'topojson-client'
@@ -58,6 +59,7 @@ export function MapView({ conferences, attendances }: MapViewProps) {
   const [selectedConference, setSelectedConference] = useState<ConferenceWithCount | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [dimensions, setDimensions] = useState({ width: 800, height: 400 })
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
 
   const conferencesWithCounts = useMemo(() => {
     return conferences
@@ -111,7 +113,9 @@ export function MapView({ conferences, attendances }: MapViewProps) {
       .attr('height', dimensions.height)
       .attr('fill', 'oklch(0.92 0.02 220)')
 
-    svg.append('path')
+    const g = svg.append('g')
+
+    g.append('path')
       .datum(graticule())
       .attr('d', pathGenerator)
       .attr('fill', 'none')
@@ -119,12 +123,21 @@ export function MapView({ conferences, attendances }: MapViewProps) {
       .attr('stroke-width', 0.5)
       .attr('opacity', 0.4)
 
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 8])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform.toString())
+      })
+
+    svg.call(zoom)
+    zoomBehaviorRef.current = zoom
+
     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
       .then(response => response.json())
       .then((topology: Topology) => {
         const countries = feature(topology, topology.objects.countries as GeometryCollection)
 
-        svg.append('g')
+        g.append('g')
           .selectAll('path')
           .data(countries.features)
           .join('path')
@@ -141,7 +154,7 @@ export function MapView({ conferences, attendances }: MapViewProps) {
             d3.select(this).attr('fill', 'oklch(0.80 0.03 240)')
           })
 
-        const markers = svg.append('g').attr('class', 'markers')
+        const markers = g.append('g').attr('class', 'markers')
 
         conferencesWithCounts.forEach(conference => {
           if (!conference.coordinates) return
@@ -191,6 +204,24 @@ export function MapView({ conferences, attendances }: MapViewProps) {
       })
   }, [dimensions, conferencesWithCounts])
 
+  const handleZoomIn = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return
+    const svg = d3.select(svgRef.current)
+    svg.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.5)
+  }
+
+  const handleZoomOut = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return
+    const svg = d3.select(svgRef.current)
+    svg.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 0.67)
+  }
+
+  const handleResetZoom = () => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return
+    const svg = d3.select(svgRef.current)
+    svg.transition().duration(500).call(zoomBehaviorRef.current.transform, d3.zoomIdentity)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -221,7 +252,38 @@ export function MapView({ conferences, attendances }: MapViewProps) {
             height={dimensions.height}
             className="w-full h-auto"
           />
+          
+          <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+            <Button
+              size="icon"
+              onClick={handleZoomIn}
+              className="bg-white text-primary hover:bg-secondary shadow-lg border-2 border-border"
+              title="Zoom In"
+            >
+              <Plus size={20} weight="bold" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={handleZoomOut}
+              className="bg-white text-primary hover:bg-secondary shadow-lg border-2 border-border"
+              title="Zoom Out"
+            >
+              <Minus size={20} weight="bold" />
+            </Button>
+            <Button
+              size="icon"
+              onClick={handleResetZoom}
+              className="bg-white text-primary hover:bg-secondary shadow-lg border-2 border-border"
+              title="Reset View"
+            >
+              <ArrowsOutSimple size={20} weight="bold" />
+            </Button>
+          </div>
         </div>
+
+        <p className="mt-4 text-sm text-muted-foreground text-center">
+          Click and drag to pan • Scroll to zoom • Click pins for details
+        </p>
       </Card>
 
       {selectedConference && (
