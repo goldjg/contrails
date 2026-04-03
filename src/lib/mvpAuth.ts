@@ -179,12 +179,14 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(mvpProfileUrl)}`
       const response = await fetch(proxyUrl)
       if (response.ok) {
-        const data = await response.json() as { contents: string; status: { http_code: number } }
-        if (data.status?.http_code === 200 && data.contents) {
-          html = data.contents
-          console.log(`[MVP Auth] Proxy fetch succeeded (${html.length} bytes)`)
+        const data = await response.json()
+        if (data && typeof data === 'object' && 'contents' in data && data.contents && typeof data.contents === 'string') {
+          const contents = data.contents
+          html = contents
+          console.log(`[MVP Auth] Proxy fetch succeeded (${contents.length} bytes)`)
         } else {
-          console.log(`[MVP Auth] Proxy returned HTTP ${data.status?.http_code}`)
+          const statusCode = data && typeof data === 'object' && 'status' in data && data.status && typeof data.status === 'object' && 'http_code' in data.status ? data.status.http_code : 'unknown'
+          console.log(`[MVP Auth] Proxy returned HTTP ${statusCode}`)
         }
       }
     } catch (err) {
@@ -192,14 +194,15 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
     }
   }
 
-  if (!html) {
+  if (!html || typeof html !== 'string') {
     console.error(`[MVP Auth] Could not retrieve MVP profile page`)
     return { isValid: false, isSecurityMVP: false, hasGitHubLink: false }
   }
 
   // ── Parse HTML ──────────────────────────────────────────────────────────────
+  const htmlString: string = html
   const parser = new DOMParser()
-  const doc = parser.parseFromString(html, 'text/html')
+  const doc = parser.parseFromString(htmlString, 'text/html')
 
   // 1. Display name – try og:title, then h1, then __NEXT_DATA__ JSON
   let displayName = ''

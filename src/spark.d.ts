@@ -1,23 +1,23 @@
 declare global {
   interface Window {
-      llm(pr
-        login: string
-      llm(prompt: string, modelName?: string, jsonMode?: boolean): Promise<string>
-      user(): Promise<{
+    spark: {
+      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
+      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>
+      user: () => Promise<{
         login: string
         avatarUrl: string
-        delete(key: s
+        email: string
+        id: string
+        isOwner: boolean
+      }>
+      kv: {
+        keys: () => Promise<string[]>
+        get: <T>(key: string) => Promise<T | undefined>
+        set: <T>(key: string, value: T) => Promise<void>
+        delete: (key: string) => Promise<void>
+      }
     }
+  }
 }
-export {
 
-
-
-
-
-
-
-
-
-
-
+export {}
