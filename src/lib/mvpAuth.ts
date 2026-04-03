@@ -10,16 +10,39 @@ export interface MVPVerificationResult {
   error?: string
 }
 
+interface GitHubUserResponse {
+  bio: string | null
+  login: string
+  id: number
+  name: string | null
+}
+
 async function fetchGitHubProfile(username: string): Promise<string> {
   const url = `https://api.github.com/users/${username}`
-  const response = await fetch(url)
-  const data = await response.json()
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'User-Agent': 'contrails-app'
+    }
+  })
+  if (!response.ok) {
+    throw new Error(`GitHub API request failed with status ${response.status}`)
+  }
+  let data: GitHubUserResponse
+  try {
+    data = await response.json()
+  } catch {
+    throw new Error('Failed to parse GitHub API response as JSON')
+  }
   return data.bio || ''
 }
 
 async function fetchMVPProfile(profileUrl: string): Promise<MVPProfile | null> {
   try {
     const response = await fetch(profileUrl)
+    if (!response.ok) {
+      throw new Error(`MVP profile request failed with status ${response.status}`)
+    }
     const html = await response.text()
     
     const displayNameMatch = html.match(/<h1[^>]*>(.*?)<\/h1>/)
