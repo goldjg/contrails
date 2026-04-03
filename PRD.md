@@ -47,6 +47,13 @@ This is a focused tool with conference browsing, attendance tracking, and user p
 - **Progression**: Owner clicks add → Form appears → Enters details → Submits → Conference appears in list
 - **Success criteria**: Form validates input, new conferences appear immediately, sorted chronologically
 
+### Statistics & Trends
+- **Functionality**: Display comprehensive statistics about conferences and attendance patterns, including total conferences, total attendances, unique MVPs, average attendance per event, top locations, popular topics, most popular conferences, and monthly trends
+- **Purpose**: Provides insights into conference distribution and community engagement patterns
+- **Trigger**: Automatically displayed when conferences exist
+- **Progression**: Page loads → Statistics section appears above conference cards → User views metrics and trends → Can identify patterns in conference activity
+- **Success criteria**: Accurate calculations, visual bar charts for trends, clear hierarchy of information, responsive on all devices
+
 ## Edge Case Handling
 
 - **No Conferences**: Display encouraging empty state with "Add Conference" CTA for owners, informative message for others

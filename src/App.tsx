@@ -3,6 +3,7 @@ import { useKV } from '@github/spark/hooks'
 import { ConferenceCard } from '@/components/ConferenceCard'
 import { AddConferenceDialog } from '@/components/AddConferenceDialog'
 import { DateRangePicker } from '@/components/DateRangePicker'
+import { StatisticsSection } from '@/components/StatisticsSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Conference, Attendance } from '@/lib/types'
@@ -273,6 +274,13 @@ function App() {
       </header>
 
       <main className="container mx-auto px-6 py-8">
+        {conferences && conferences.length > 0 && (
+          <StatisticsSection 
+            conferences={conferences}
+            attendances={attendances || []}
+          />
+        )}
+
         {filteredConferences.length === 0 && !searchQuery && filterLocation === 'all' && filterTopic === 'all' && !dateRange?.from && (
           <div className="text-center py-20">
             <Globe className="mx-auto mb-4 text-muted-foreground" size={64} />
@@ -297,18 +305,27 @@ function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredConferences.map((conference) => (
-            <ConferenceCard
-              key={conference.id}
-              conference={conference}
-              attendances={getConferenceAttendances(conference.id)}
-              isUserAttending={isUserAttending(conference.id)}
-              onToggleAttendance={() => handleToggleAttendance(conference.id)}
-              currentUser={currentUser}
-            />
-          ))}
-        </div>
+        {filteredConferences.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <Globe size={28} weight="bold" className="text-primary" />
+              <h2 className="text-2xl font-bold">Upcoming Conferences</h2>
+              <span className="text-muted-foreground text-sm">({filteredConferences.length})</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredConferences.map((conference) => (
+                <ConferenceCard
+                  key={conference.id}
+                  conference={conference}
+                  attendances={getConferenceAttendances(conference.id)}
+                  isUserAttending={isUserAttending(conference.id)}
+                  onToggleAttendance={() => handleToggleAttendance(conference.id)}
+                  currentUser={currentUser}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       <AddConferenceDialog
