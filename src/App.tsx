@@ -113,12 +113,12 @@ function App() {
             <h1 className="text-white font-bold text-3xl tracking-tight">ConTrails</h1>
           </div>
 
-          <nav className="flex items-center gap-2">
+          <nav className="flex items-center gap-2 overflow-x-auto pb-1 -mx-6 px-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/30">
             <Button
               variant="ghost"
               onClick={() => setCurrentView('conferences')}
               className={cn(
-                "text-white hover:bg-white/10",
+                "text-white hover:bg-white/10 flex-shrink-0",
                 currentView === 'conferences' && "bg-white/20"
               )}
             >
@@ -129,7 +129,7 @@ function App() {
               variant="ghost"
               onClick={() => setCurrentView('map')}
               className={cn(
-                "text-white hover:bg-white/10",
+                "text-white hover:bg-white/10 flex-shrink-0",
                 currentView === 'map' && "bg-white/20"
               )}
             >
@@ -140,7 +140,7 @@ function App() {
               variant="ghost"
               onClick={() => setCurrentView('analytics')}
               className={cn(
-                "text-white hover:bg-white/10",
+                "text-white hover:bg-white/10 flex-shrink-0",
                 currentView === 'analytics' && "bg-white/20"
               )}
             >
@@ -151,7 +151,7 @@ function App() {
               variant="ghost"
               onClick={() => setCurrentView('mvps')}
               className={cn(
-                "text-white hover:bg-white/10",
+                "text-white hover:bg-white/10 flex-shrink-0",
                 currentView === 'mvps' && "bg-white/20"
               )}
             >
