@@ -172,7 +172,8 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
     if (m) displayName = m[1].trim()
   }
 
-  // 2. Award category – check embedded JSON first, then HTML text
+  // 2. Award category – check embedded JSON first, then the actual DOM structure
+  //    of the MVP profile page, then a raw-HTML regex fallback.
   let awardCategory = ''
   const categoryJsonPatterns = [
     /"awardCategory(?:Name)?"\s*:\s*"([^"]+)"/i,
@@ -183,18 +184,37 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
     if (m) { awardCategory = m[1].trim(); break }
   }
   if (!awardCategory) {
-    // Look for the text "Award Category" followed closely by a value in the DOM.
-    // Exclude div to avoid matching large containers; use leaf elements only.
+    // The live MVP profile page renders the award category value inside a <span>
+    // with these exact inline styles (styled-components app, class names change):
+    //   <span style="line-height: 22px; color: rgb(102, 102, 102); font-size: 16px;">Security</span>
+    const styledSpan = doc.querySelector(
+      'span[style*="color: rgb(102, 102, 102)"][style*="font-size: 16px"]'
+    )
+    const val = styledSpan?.textContent?.trim()
+    if (val) awardCategory = val
+  }
+  if (!awardCategory) {
+    // Raw-HTML regex for the same inline style pattern – catches cases where the
+    // CORS proxy may have normalised attribute quoting or whitespace.
+    const styleMatch = html.match(
+      /<span[^>]*style\s*=\s*["'][^"']*color:\s*rgb\(102,\s*102,\s*102\)[^"']*font-size:\s*16px[^"']*["'][^>]*>\s*([^<]+?)\s*<\/span>/i
+    ) ?? html.match(
+      /<span[^>]*style\s*=\s*["'][^"']*font-size:\s*16px[^"']*color:\s*rgb\(102,\s*102,\s*102\)[^"']*["'][^>]*>\s*([^<]+?)\s*<\/span>/i
+    )
+    if (styleMatch) awardCategory = styleMatch[1].trim()
+  }
+  if (!awardCategory) {
+    // Broadest fallback: look for the text "Award Category" in the DOM followed
+    // by a sibling or parent-sibling element containing the value.
     const labelEls = doc.querySelectorAll('span, dt, p, td, th, li, label')
     labelEls.forEach(el => {
       if (awardCategory) return
-      // True leaf: no child elements (may still have text nodes)
       if (el.children.length !== 0) return
       const text = el.textContent?.trim() ?? ''
       if (/^award\s+category$/i.test(text)) {
         const next = el.nextElementSibling ?? el.parentElement?.nextElementSibling
-        const val = next?.textContent?.trim()
-        if (val) awardCategory = val
+        const nextVal = next?.textContent?.trim()
+        if (nextVal) awardCategory = nextVal
       }
     })
   }
@@ -203,9 +223,29 @@ async function fetchMVPProfile(mvpProfileUrl: string, githubUsername: string): P
     // Broad fallback: look for "Security" appearing as a standalone award category in any JSON
     /"(?:awardCategory(?:Name)?|mvpCategory|category)"\s*:\s*"[^"]*security[^"]*"/i.test(html)
 
-  // 3. GitHub links – collect via the regex scan (which already requires the full
-  //    github.com hostname at the start of the URL) and deduplicate via a Set.
+  // 3. GitHub links – three sources, all deduplicated via a Set:
+  //    a) <img alt="GitHub" title="GitHub | https://github.com/username"> buttons
+  //       (the actual format used on the MVP profile page social links section)
+  //    b) <a href="…github.com/…"> anchor tags
+  //    c) Full-URL regex scan over raw HTML
   const githubLinks = new Set<string>()
+
+  // a) Social button images: title="GitHub | <url>"
+  doc.querySelectorAll('img[alt="GitHub"][title]').forEach(img => {
+    const title = img.getAttribute('title') ?? ''
+    // Format: "GitHub | https://github.com/username"
+    const urlMatch = title.match(/https?:\/\/(?:www\.)?github\.com\/[^\s|]+/)
+    if (urlMatch) githubLinks.add(urlMatch[0].replace(/\/+$/, ''))
+  })
+
+  // b) Anchor tags whose href contains github.com
+  doc.querySelectorAll('a[href]').forEach(a => {
+    const href = a.getAttribute('href') ?? ''
+    const urlMatch = href.match(/https?:\/\/(?:www\.)?github\.com\/[^\s"'<>,)]+/)
+    if (urlMatch) githubLinks.add(urlMatch[0].replace(/\/+$/, ''))
+  })
+
+  // c) Raw-HTML regex scan (catches URLs in any other attribute or text)
   const ghPattern = /https?:\/\/(?:www\.)?github\.com\/[^\s"'<>,)]+/gi
   for (const m of html.matchAll(ghPattern)) {
     githubLinks.add(m[0].replace(/\/+$/, ''))
