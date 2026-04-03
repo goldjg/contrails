@@ -1,0 +1,268 @@
+import { Conference } from './types'
+
+export const seedConferences2026: Conference[] = [
+  {
+    id: 'conf-rsa-2026',
+    name: 'RSA Conference 2026',
+    location: 'San Francisco',
+    country: 'USA',
+    startDate: '2026-04-20',
+    endDate: '2026-04-23',
+    description: 'The world\'s leading information security conference and expo. RSA Conference brings together the brightest minds in cybersecurity to discuss the latest threats, solutions, and innovations shaping the future of digital security.',
+    topics: ['Cloud Security', 'Zero Trust', 'Threat Intelligence', 'Identity & Access Management'],
+    website: 'https://www.rsaconference.com'
+  },
+  {
+    id: 'conf-blackhat-usa-2026',
+    name: 'Black Hat USA 2026',
+    location: 'Las Vegas',
+    country: 'USA',
+    startDate: '2026-08-01',
+    endDate: '2026-08-06',
+    description: 'The most technical and relevant information security event series in the world. Black Hat provides attendees with the latest in research, development, and trends in information security.',
+    topics: ['Penetration Testing', 'Vulnerability Research', 'Exploit Development', 'Network Security'],
+    website: 'https://www.blackhat.com'
+  },
+  {
+    id: 'conf-defcon-2026',
+    name: 'DEF CON 34',
+    location: 'Las Vegas',
+    country: 'USA',
+    startDate: '2026-08-06',
+    endDate: '2026-08-09',
+    description: 'One of the world\'s largest and most notable hacker conventions. DEF CON is a community-driven event where security researchers, hackers, and enthusiasts gather to share knowledge and skills.',
+    topics: ['Hacking', 'CTF', 'Social Engineering', 'Hardware Hacking', 'Wireless Security'],
+    website: 'https://defcon.org'
+  },
+  {
+    id: 'conf-bsides-london-2026',
+    name: 'BSides London 2026',
+    location: 'London',
+    country: 'UK',
+    startDate: '2026-06-03',
+    endDate: '2026-06-04',
+    description: 'A community-driven framework for building events by and for information security practitioners. BSides provides a relaxed environment to discuss emerging threats and innovative security solutions.',
+    topics: ['AppSec', 'Red Team', 'Blue Team', 'OSINT', 'Incident Response'],
+    website: 'https://www.securitybsides.org.uk'
+  },
+  {
+    id: 'conf-infosec-europe-2026',
+    name: 'Infosecurity Europe 2026',
+    location: 'London',
+    country: 'UK',
+    startDate: '2026-06-02',
+    endDate: '2026-06-04',
+    description: 'Europe\'s number one information security event. Bringing together over 400 exhibitors and 19,000+ attendees to discover the latest innovations, trends and threats facing the industry.',
+    topics: ['Data Protection', 'GDPR', 'Cyber Risk', 'Security Operations'],
+    website: 'https://www.infosecurityeurope.com'
+  },
+  {
+    id: 'conf-gartner-sec-2026',
+    name: 'Gartner Security & Risk Management Summit 2026',
+    location: 'National Harbor',
+    country: 'USA',
+    startDate: '2026-06-08',
+    endDate: '2026-06-11',
+    description: 'Gartner\'s premier security and risk management event helps CISOs and security leaders navigate the evolving threat landscape and build resilient security programs.',
+    topics: ['Security Strategy', 'Risk Management', 'Cyber Resilience', 'Security Architecture'],
+    website: 'https://www.gartner.com/en/conferences'
+  },
+  {
+    id: 'conf-secureworld-seattle-2026',
+    name: 'SecureWorld Seattle 2026',
+    location: 'Seattle',
+    country: 'USA',
+    startDate: '2026-05-14',
+    endDate: '2026-05-14',
+    description: 'A one-day cybersecurity conference featuring expert speakers, cutting-edge training, and exhibitors showcasing the latest security solutions. Perfect for regional security professionals.',
+    topics: ['Ransomware', 'Phishing', 'Security Awareness', 'Compliance'],
+    website: 'https://www.secureworldexpo.com'
+  },
+  {
+    id: 'conf-cybersec-europe-2026',
+    name: 'Cyber Security & Cloud Expo Europe 2026',
+    location: 'Amsterdam',
+    country: 'Netherlands',
+    startDate: '2026-09-23',
+    endDate: '2026-09-24',
+    description: 'Leading Cyber Security & Cloud Conference & Exhibition connecting industry leaders, decision makers, and technology innovators across multiple industries.',
+    topics: ['Cloud Security', 'IoT Security', 'AI in Security', 'DevSecOps'],
+    website: 'https://www.cybersecuritycloudexpo.com'
+  },
+  {
+    id: 'conf-sans-2026',
+    name: 'SANS Security Summit 2026',
+    location: 'Orlando',
+    country: 'USA',
+    startDate: '2026-07-13',
+    endDate: '2026-07-18',
+    description: 'SANS Security Summit brings together security practitioners with hands-on training and cutting-edge research. Learn from the world\'s most trusted source for cybersecurity training and certification.',
+    topics: ['Security Training', 'Forensics', 'SOC', 'Malware Analysis'],
+    website: 'https://www.sans.org'
+  },
+  {
+    id: 'conf-cybertech-telaviv-2026',
+    name: 'Cybertech Tel Aviv 2026',
+    location: 'Tel Aviv',
+    country: 'Israel',
+    startDate: '2026-09-01',
+    endDate: '2026-09-02',
+    description: 'The largest cyber event outside of the United States, bringing together governments, companies, entrepreneurs, and investors to showcase the latest technological innovations.',
+    topics: ['Cyber Innovation', 'National Security', 'Startup Ecosystem', 'Critical Infrastructure'],
+    website: 'https://www.cybertechisrael.com'
+  },
+  {
+    id: 'conf-44con-2026',
+    name: '44CON 2026',
+    location: 'London',
+    country: 'UK',
+    startDate: '2026-09-16',
+    endDate: '2026-09-18',
+    description: 'A deeply technical, hands-on conference for those who want to get their hands dirty with the latest attack techniques, defense strategies, and security research.',
+    topics: ['Offensive Security', 'Security Research', 'Reverse Engineering', 'Binary Exploitation'],
+    website: 'https://44con.com'
+  },
+  {
+    id: 'conf-aussiecon-2026',
+    name: 'AusCERT 2026',
+    location: 'Gold Coast',
+    country: 'Australia',
+    startDate: '2026-05-19',
+    endDate: '2026-05-22',
+    description: 'Australia\'s premier cyber security conference bringing together security professionals, researchers, and industry leaders from across the Asia-Pacific region.',
+    topics: ['APT', 'Cyber Warfare', 'Critical Infrastructure', 'Regional Threats'],
+    website: 'https://conference.auscert.org.au'
+  },
+  {
+    id: 'conf-nullcon-2026',
+    name: 'Nullcon 2026',
+    location: 'Goa',
+    country: 'India',
+    startDate: '2026-08-05',
+    endDate: '2026-08-07',
+    description: 'An annual international security conference that discusses the next generation of cutting-edge attacks and defenses. Features hands-on training and world-class speakers.',
+    topics: ['Mobile Security', 'Web Application Security', 'Cryptography', 'Bug Bounty'],
+    website: 'https://nullcon.net'
+  },
+  {
+    id: 'conf-shakacon-2026',
+    name: 'ShakaCon 2026',
+    location: 'Honolulu',
+    country: 'USA',
+    startDate: '2026-09-29',
+    endDate: '2026-10-02',
+    description: 'Hawaii\'s premier hacking and security conference. A unique blend of technical content in a tropical paradise, perfect for networking and knowledge sharing.',
+    topics: ['Hardware Security', 'Bug Hunting', 'Embedded Systems', 'Wireless Protocols'],
+    website: 'https://www.shakacon.org'
+  },
+  {
+    id: 'conf-hitb-singapore-2026',
+    name: 'HITB+ CyberWeek 2026',
+    location: 'Singapore',
+    country: 'Singapore',
+    startDate: '2026-08-24',
+    endDate: '2026-08-28',
+    description: 'Asia\'s premier deep-knowledge security conference featuring cutting-edge research, hands-on training, and a world-class CTF competition.',
+    topics: ['Advanced Exploits', 'Mobile Security', 'Cloud Native Security', 'API Security'],
+    website: 'https://conference.hitb.org'
+  },
+  {
+    id: 'conf-appsec-usa-2026',
+    name: 'OWASP Global AppSec USA 2026',
+    location: 'Washington DC',
+    country: 'USA',
+    startDate: '2026-10-05',
+    endDate: '2026-10-09',
+    description: 'The premier application security conference organized by OWASP. Covers the latest in web application security, secure development practices, and emerging threats.',
+    topics: ['OWASP Top 10', 'Secure Coding', 'Application Security', 'API Security'],
+    website: 'https://owasp.org/www-conference-global-appsec-usa/'
+  },
+  {
+    id: 'conf-hacklu-2026',
+    name: 'hack.lu 2026',
+    location: 'Luxembourg',
+    country: 'Luxembourg',
+    startDate: '2026-10-19',
+    endDate: '2026-10-22',
+    description: 'An open convention focused on information security with technical talks, workshops, and hands-on activities for security professionals and enthusiasts.',
+    topics: ['Malware Analysis', 'Digital Forensics', 'Threat Hunting', 'Security Automation'],
+    website: 'https://hack.lu'
+  },
+  {
+    id: 'conf-securityweek-ics-2026',
+    name: 'SecurityWeek ICS Cyber Security Conference 2026',
+    location: 'Atlanta',
+    country: 'USA',
+    startDate: '2026-10-26',
+    endDate: '2026-10-29',
+    description: 'The annual ICS Cyber Security Conference is designed for security professionals responsible for protecting industrial control systems and critical infrastructure.',
+    topics: ['ICS Security', 'SCADA', 'Critical Infrastructure', 'OT Security'],
+    website: 'https://www.icscybersecurityconference.com'
+  },
+  {
+    id: 'conf-t2-2026',
+    name: 'T2 Infosec Conference 2026',
+    location: 'Helsinki',
+    country: 'Finland',
+    startDate: '2026-10-22',
+    endDate: '2026-10-23',
+    description: 'Finland\'s premier infosec conference bringing together Nordic and international security experts. Features cutting-edge research and practical security insights.',
+    topics: ['Privacy', 'Nordic Security', 'Supply Chain Security', 'Security Research'],
+    website: 'https://t2.fi'
+  },
+  {
+    id: 'conf-brucon-2026',
+    name: 'BruCON 2026',
+    location: 'Brussels',
+    country: 'Belgium',
+    startDate: '2026-09-30',
+    endDate: '2026-10-02',
+    description: 'A security conference that provides quality security content to the European security community. Features workshops, trainings, and technical presentations.',
+    topics: ['Red Teaming', 'Purple Team', 'Security Engineering', 'Infrastructure Security'],
+    website: 'https://www.brucon.org'
+  },
+  {
+    id: 'conf-ccs-2026',
+    name: 'ACM CCS 2026',
+    location: 'Vienna',
+    country: 'Austria',
+    startDate: '2026-10-12',
+    endDate: '2026-10-16',
+    description: 'The ACM Conference on Computer and Communications Security is a premier forum for security and privacy researchers and practitioners to share cutting-edge research.',
+    topics: ['Academic Research', 'Cryptography', 'Privacy Technologies', 'Security Protocols'],
+    website: 'https://www.sigsac.org/ccs.html'
+  },
+  {
+    id: 'conf-bluehat-2026',
+    name: 'BlueHat 2026',
+    location: 'Redmond',
+    country: 'USA',
+    startDate: '2026-11-02',
+    endDate: '2026-11-03',
+    description: 'Microsoft\'s security conference bringing together security researchers and Microsoft engineers to share research and collaborate on making technology safer.',
+    topics: ['Windows Security', 'Azure Security', 'Vulnerability Research', 'Microsoft Defender'],
+    website: 'https://www.microsoft.com/en-us/bluehat'
+  },
+  {
+    id: 'conf-troopers-2026',
+    name: 'TROOPERS 2026',
+    location: 'Heidelberg',
+    country: 'Germany',
+    startDate: '2026-06-22',
+    endDate: '2026-06-26',
+    description: 'IT Security event for both technical and management audiences. Known for high-quality technical content and a strong community atmosphere.',
+    topics: ['Security Automation', 'Threat Detection', 'Defensive Security', 'Incident Response'],
+    website: 'https://www.troopers.de'
+  },
+  {
+    id: 'conf-enigma-2026',
+    name: 'USENIX Enigma 2026',
+    location: 'Santa Clara',
+    country: 'USA',
+    startDate: '2026-05-11',
+    endDate: '2026-05-13',
+    description: 'Enigma brings together users, administrators, and makers of security and privacy technology to discuss emerging threats, novel attacks, and innovative defenses.',
+    topics: ['Emerging Threats', 'Security UX', 'Privacy Engineering', 'Applied Cryptography'],
+    website: 'https://www.usenix.org/conference/enigma'
+  }
+]

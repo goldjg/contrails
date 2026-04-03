@@ -8,6 +8,8 @@ import { Conference, Attendance } from '@/lib/types'
 import { PlusCircle, MagnifyingGlass, Globe } from '@phosphor-icons/react'
 import { Toaster } from '@/components/ui/sonner'
 import { isPast, parseISO } from 'date-fns'
+import { seedConferences2026 } from '@/lib/seedData'
+import { toast } from 'sonner'
 
 function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
@@ -15,6 +17,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
+  const [hasSeeded, setHasSeeded] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -23,6 +26,14 @@ function App() {
     }
     loadUser()
   }, [])
+
+  useEffect(() => {
+    if (currentUser?.isOwner && conferences && conferences.length === 0 && !hasSeeded) {
+      setConferences(seedConferences2026)
+      setHasSeeded(true)
+      toast.success('Loaded 24 conferences for 2026!')
+    }
+  }, [currentUser, conferences, hasSeeded, setConferences])
 
   const filteredConferences = useMemo(() => {
     if (!conferences) return []
