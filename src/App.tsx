@@ -30,7 +30,7 @@ function App() {
   const [conferences, setConferences] = useKV<Conference[]>('conferences', [])
   const [attendances, setAttendances] = useKV<Attendance[]>('attendances', [])
   const [currentUser, setCurrentUser] = useState<{ login: string; avatarUrl: string; isOwner: boolean } | null>(null)
-  const [isVerified, setIsVerified] = useState<boolean | null>(null)
+  const [isVerified, setIsVerified] = useState<boolean>(false)
   const [hasSeeded, setHasSeeded] = useState(false)
   const [selectedMVP, setSelectedMVP] = useState<{ userId: string; userName: string; userAvatar: string } | null>(null)
   const [currentView, setCurrentView] = useState<ViewMode>('conferences')
@@ -128,7 +128,7 @@ function App() {
     toast.success('All attendance data cleared')
   }
 
-  if (!currentUser || isVerified === null) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div 
