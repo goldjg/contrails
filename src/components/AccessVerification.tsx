@@ -131,9 +131,18 @@ export function AccessVerification({ username, onVerified }: AccessVerificationP
                   <LinkIcon size={20} className="text-primary flex-shrink-0 mt-0.5" weight="bold" />
                   <div>
                     <p className="font-medium mb-1">Add your MVP profile URL to your GitHub bio</p>
-                    <p className="text-muted-foreground">
-                      Go to your <a href={`https://github.com/${username}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">GitHub profile</a> and add your Microsoft MVP profile URL (e.g., https://mvp.microsoft.com/en-US/mvp/profile/YOUR-ID) to your bio
+                    <p className="text-muted-foreground mb-2">
+                      Go to your GitHub profile and add your Microsoft MVP profile URL (e.g., https://mvp.microsoft.com/en-US/mvp/profile/YOUR-ID) to your bio
                     </p>
+                    <a 
+                      href={`https://github.com/${username}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      <LinkIcon size={16} weight="bold" />
+                      https://github.com/{username}
+                    </a>
                   </div>
                 </div>
 
